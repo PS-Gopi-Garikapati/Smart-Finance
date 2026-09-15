@@ -1,109 +1,134 @@
-# Smart Finance Agent – Goal-Based Tool-Calling Agent with MCP
+# 💰 Smart Finance Agent
 
-A professional, production-ready AI-powered personal finance assistant built with **Python 3.11+**, **FastMCP (Model Context Protocol)**, **FastAPI**, **SQLite**, **Pydantic**, **Ollama**, and a modern web interface.
+> **Goal-Based Tool-Calling Financial Assistant with Model Context Protocol (MCP)**
 
-The system allows users to ask natural-language questions about their expenses, budgets, and spending. The agent understands the user's goal, dynamically selects and calls tools over standard MCP client-server protocol, records real observations, generates grounded responses, and verifies claims through a reflection/verification layer.
+A professional, production-ready AI-powered personal finance assistant built with **Python 3.11+**, **FastMCP**, **FastAPI**, **SQLite**, **Pydantic**, **Ollama**, and a modern Web UI.
+
+The system processes natural language questions about expenses, budgets, and category spending. The agent understands user goals, dynamically selects and calls tools over standard MCP (stdio JSON-RPC protocol), records real database observations, generates grounded responses, and verifies all numerical claims through an independent **Reflection & Grounding Audit Layer**.
 
 ---
 
-## Architecture
+## 🚀 Key Features
 
-```
-User (Web UI / API)
-       ↓
- Fast API Backend (/api/ask)
-       ↓
-  Agent Loop (MAX_ITERATIONS = 5)
-       ↓
-   LLM Policy Layer (Ollama / Local LLM)
-       ↓ (Dynamic Decision: tool_call / final_answer)
-   MCP Client (FinanceMCPClient)
-       ↓ (Stdio Transport Handshake & JSON-RPC Protocol)
-   MCP Server (MCPServer / FastMCP)
-       ↓
- Finance Tools (get_expenses, get_budget, compare_budget, calculate_total, get_spending_by_category)
-       ↓
+- **Goal-Based Agent Loop**: Dynamic iteration loop bounded by `MAX_ITERATIONS = 5` to solve multi-step financial inquiries.
+- **Model Context Protocol (MCP)**: Strict client-server stdio transport layer exposing 5 specialized financial tools.
+- **Real Execution**: All queries execute against actual SQLite database records—zero fake data or hardcoded responses.
+- **Dual Policy Engine**: Connects to **Ollama** (`qwen2.5:7b` / `llama3.2`) for local LLM inference with automated fallback to a deterministic policy engine when offline.
+- **Reflection & Grounding Layer**: Audits draft answers against recorded tool observations to prevent hallucinations or unverified financial claims.
+- **Interactive Web Interface**: Clean web dashboard built with HTML5, CSS3, and JavaScript to ask questions and inspect live tool trace execution logs.
+
+---
+
+## 🏗️ System Architecture
+
+```text
+User Question (Web UI / REST API)
+       │
+       ▼
+ FastAPI Backend (/api/ask)
+       │
+       ▼
+ Agent Loop (MAX_ITERATIONS = 5)
+       │
+       ▼
+ LLM Policy Layer (Ollama / Local LLM / Deterministic Fallback)
+       │ (Selects: tool_call or final_answer)
+       ▼
+ MCP Client (FinanceMCPClient)
+       │ (Stdio Transport & JSON-RPC Handshake)
+       ▼
+ MCP Server (MCPServer / FastMCP)
+       │
+       ├─► get_expenses
+       ├─► get_budget
+       ├─► compare_budget
+       ├─► calculate_total
+       └─► get_spending_by_category
+       │
+       ▼
  SQLite Database (expenses & budgets tables)
-       ↓
- Real Tool Results & Observations
-       ↓
+       │
+       ▼
+ Recorded Tool Observations
+       │
+       ▼
  Reflection & Grounding Layer (ReflectionEvaluator)
-       ↓
- Verified Response → User Interface
+       │
+       ▼
+ Verified Answer → Web UI / API Response
 ```
 
 ---
 
-## Requirement Mapping Matrix
+## 📊 Requirement Mapping Matrix
 
-| Requirement | Implementation Details | Target File |
+| Requirement | Description & Implementation | Target File |
 | :--- | :--- | :--- |
-| **Practical Problem** | Natural language analysis of personal expenses and budgets | [`frontend/index.html`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/frontend/index.html) |
-| **LLM Policy** | Ollama integration with Pydantic JSON validation & fallback | [`agent/llm_policy.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/llm_policy.py) |
+| **Practical Problem** | Natural language analysis of personal expenses, budgets, and spending trends | [`frontend/index.html`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/frontend/index.html) |
+| **LLM Policy** | Ollama chat integration with Pydantic JSON validation & rule fallback | [`agent/llm_policy.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/llm_policy.py) |
 | **MCP Tools** | 5 finance tools: `get_expenses`, `get_budget`, `calculate_total`, `compare_budget`, `get_spending_by_category` | [`mcp_server/tools/`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_server/tools/) |
-| **MCP Boundary** | Real stdio client-server protocol connection & handshake | [`mcp_client/client.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_client/client.py) & [`mcp_server/server.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_server/server.py) |
-| **Dynamic Agent Loop** | Iterative loop bounded by `MAX_ITERATIONS = 5` | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
-| **Real Execution** | Actual SQLite queries & numeric calculations (No hardcoded/fake data) | [`database/database.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/database/database.py) |
-| **Grounded Answer** | Answers derived exclusively from recorded tool observations | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
-| **Reflection Layer** | Independent audit checking numerical claims & budget statuses | [`reflection/evaluator.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/reflection/evaluator.py) |
-| **Reliability** | Exception handling for missing data, unknown tools, malformed JSON | [`tests/test_failures.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/test_failures.py) |
-| **Automated Tests** | 22 Pytest unit and integration tests covering all paths | [`tests/`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/) |
+| **MCP Protocol** | Real stdio client-server protocol connection & JSON-RPC handshake | [`mcp_client/client.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_client/client.py) |
+| **Dynamic Agent Loop** | Bounded step-by-step iteration loop (`MAX_ITERATIONS = 5`) | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
+| **Real Database Execution** | Real SQLite queries for expense records and configured budgets | [`database/database.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/database/database.py) |
+| **Grounded Answers** | Answers generated strictly from accumulated observation state | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
+| **Reflection Audit** | Independent verification checking numerical figures against recorded observations | [`reflection/evaluator.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/reflection/evaluator.py) |
+| **Reliability & Edge Cases**| Exception handling for missing data, unknown tools, and malformed JSON | [`tests/test_failures.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/test_failures.py) |
+| **Automated Tests** | 22 Pytest unit and integration test cases | [`tests/`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/) |
 
 ---
 
-## Directory Structure
+## 📁 Repository Structure
 
-```
-smart-finance-mcp-agent/
-├── README.md
-├── requirements.txt
-├── .env.example
-├── .env
-├── .gitignore
+```text
+Smart-Finance/
+├── README.md               # Project documentation
+├── requirements.txt        # Python package dependencies
+├── .env.example            # Environment variable template
+├── .gitignore              # Git ignore configuration
 ├── backend/
-│   ├── main.py
-│   └── config.py
+│   ├── main.py             # FastAPI entrypoint & static file server
+│   └── config.py           # Backend settings & paths
 ├── agent/
-│   ├── agent_loop.py
-│   ├── llm_policy.py
-│   ├── schemas.py
-│   └── observations.py
+│   ├── agent_loop.py       # Main goal-based loop controller
+│   ├── llm_policy.py       # Ollama API client & fallback policy engine
+│   ├── schemas.py          # Pydantic models for actions and responses
+│   └── observations.py    # Observation state tracker
 ├── mcp_client/
-│   ├── client.py
-│   └── tool_discovery.py
+│   ├── client.py           # Stdio MCP client wrapper
+│   └── tool_discovery.py   # MCP tool discovery & prompt formatter
 ├── mcp_server/
-│   ├── server.py
-│   └── tools/
-│       ├── expenses.py
-│       ├── budgets.py
-│       ├── calculator.py
-│       └── analytics.py
+│   ├── server.py           # MCP server implementation
+│   └── tools/             # MCP tool implementations
+│       ├── expenses.py     # Expense search tool
+│       ├── budgets.py      # Budget retrieval tool
+│       ├── calculator.py   # Total calculation tool
+│       └── analytics.py   # Category comparison tool
 ├── database/
-│   ├── database.py
-│   ├── init_db.py
-│   └── seed_data.py
+│   ├── database.py         # SQLite connection manager & queries
+│   ├── init_db.py          # Schema creation script
+│   └── seed_data.py        # Database seed script
 ├── reflection/
-│   ├── evaluator.py
-│   └── schemas.py
+│   ├── evaluator.py        # Reflection grounding & verification auditor
+│   └── schemas.py          # Reflection result models
 ├── frontend/
-│   ├── index.html
-│   ├── style.css
-│   └── script.js
-└── tests/
-    ├── test_mcp.py
-    ├── test_tools.py
+│   ├── index.html          # Web dashboard interface
+│   ├── style.css           # Styling rules
+│   └── script.js           # Frontend interactive API logic
+└── tests/                  # Pytest test suite (22 tests)
     ├── test_agent.py
+    ├── test_failures.py
+    ├── test_mcp.py
     ├── test_reflection.py
     └── test_failures.py
 ```
 
 ---
 
-## Installation & Quickstart
+## ⚡ Quickstart Guide
 
 ### 1. Prerequisites
-- Python 3.11+ installed.
-- (Optional) [Ollama](https://ollama.com/) running locally for local LLM inference (`qwen2.5:7b` or `llama3.2`).
+- **Python 3.11+** installed.
+- (Optional) [Ollama](https://ollama.com/) running locally (`ollama run qwen2.5:7b` or `llama3.2`).
 
 ### 2. Install Dependencies
 ```bash
@@ -115,12 +140,12 @@ pip install -r requirements.txt
 python -m database.seed_data
 ```
 
-### 4. Run Automated Tests
+### 4. Run Automated Test Suite
 ```bash
 python -m pytest tests/ -v
 ```
 
-### 5. Launch Application Server
+### 5. Start the Web Server
 ```bash
 python -m backend.main
 ```
@@ -128,12 +153,11 @@ Open your browser and navigate to: **`http://localhost:8000`**
 
 ---
 
-## Example Questions & Execution Flow
+## 🔍 Example Execution Flow
 
-### Query 1: Budget Exceeded Inquiry
-> **Question**: *"Did I exceed my food budget?"*
+### Question: *"Did I exceed my food budget?"*
 
-#### Terminal Execution Trace Log:
+#### Terminal Execution Log:
 ```text
 ============================================================
 SMART FINANCE AGENT - GOAL-BASED AGENT LOOP
@@ -183,22 +207,12 @@ REFLECTION & GROUNDING VERIFICATION:
 
 ---
 
-## Failure & Partial-Data Scenarios
+## 🛡️ Self-Correction & Grounding Examples
 
-### Scenario A: Missing / Partial Data (October 2026)
-> **Question**: *"How much did I spend in October 2026?"*
-- **Behavior**: The agent queries `get_expenses(month="2026-10")`, receives `{"success": True, "count": 0, "total": 0.0}` from SQLite.
-- **Output**: *"No expense records were found for that category in 2026-10."*
-- **Grounding Guarantee**: The system refuses to fabricate October spending.
-
-### Scenario B: Unsupported Claim Detection & Self-Correction
-- **Draft Answer**: *"You spent ₹8,000 on food."*
-- **Observation**: `total = 6000.0`
-- **Reflection Audit**: Detects `8000.0` is unverified, changes status to `UNSUPPORTED_CLAIMS`, rejects draft, and outputs verified observation text: `[VERIFIED OBSERVATIONS]: Total spent on Food (2026-09): ₹6,000.00.`
+- **Scenario A (Missing Data)**: Asking *"How much did I spend in October 2026?"* queries SQLite, receives `0.0`, and outputs: *"No expense records were found for that category in 2026-10."*
+- **Scenario B (Reflection Audit)**: If a draft answer mentions an unverified number (e.g., *"₹8,000 on food"* when tool recorded `₹6,000`), the reflection audit flags `UNSUPPORTED_CLAIMS` and replaces the draft with grounded observation facts.
 
 ---
 
-## License & Author
-Built for **Smart Finance Agent** demonstration using Python, MCP SDK, FastAPI, SQLite, and Pydantic.
-#   S m a r t - F i n a n c e  
- 
+## 📄 License
+Built for **Smart Finance Agent** demonstration using Python 3.11, FastMCP, FastAPI, SQLite, and Pydantic.
