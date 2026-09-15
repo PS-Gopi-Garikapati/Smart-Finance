@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Finance Agent – MCP AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>Smart Finance Agent</h1>
+                    <p class="subtitle">Goal-Based AI Agent with MCP & Grounding Verification</p>
+                </div>
+            </div>
+            <div class="mcp-status-badge">
+                <span class="pulse-dot"></span>
+                <span>MCP Server Active (stdio)</span>
+            </div>
+        </header>
+
+        <!-- Main Query Section -->
+        <main class="content-grid">
+            <section class="query-card glass-panel">
+                <h2>Ask Your Financial Goal</h2>
+                <p class="description">Enter a natural-language question about your expenses, budgets, or category breakdowns.</p>
+                
+                <form id="finance-form" class="input-form">
+                    <div class="input-wrapper">
+                        <input type="text" id="question-input" placeholder="e.g. Did I exceed my food budget?" autocomplete="off" required>
+                        <button type="submit" id="submit-btn" class="primary-btn">
+                            <span>Ask Agent</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Preset Questions -->
+                <div class="presets-container">
+                    <span class="preset-label">Sample Questions:</span>
+                    <div class="preset-chips">
+                        <button class="chip-btn" data-question="Did I exceed my food budget?">Did I exceed my food budget?</button>
+                        <button class="chip-btn" data-question="How much did I spend on food this month?">Food spending this month</button>
+                        <button class="chip-btn" data-question="Which category has the highest spending?">Highest spending category</button>
+                        <button class="chip-btn" data-question="Compare my August and September spending.">Compare Aug & Sept</button>
+                        <button class="chip-btn" data-question="How much did I spend in October 2026?">October 2026 (Missing Data)</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Spinner -->
+            <div id="loading-spinner" class="loading-state glass-panel hidden">
+                <div class="spinner"></div>
+                <div class="loading-text">
+                    <h3>Agent Loop In Progress...</h3>
+                    <p id="loading-status-text">Connecting to MCP Server & Discovered Tools</p>
+                </div>
+            </div>
+
+            <!-- Results Display Section -->
+            <section id="results-panel" class="results-panel glass-panel hidden">
+                <!-- Answer Header -->
+                <div class="answer-box">
+                    <div class="answer-header">
+                        <h3>Final Answer</h3>
+                        <div id="grounding-badge" class="badge verified">
+                            <span id="grounding-icon">✓</span>
+                            <span id="grounding-text">VERIFIED</span>
+                        </div>
+                    </div>
+                    <div id="final-answer-content" class="answer-text">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Execution Timeline / Steps Breakdown -->
+                <div class="trace-grid">
+                    <!-- Tools Used Step List -->
+                    <div class="trace-card">
+                        <h4>Tools Executed (<span id="tools-count">0</span>)</h4>
+                        <ul id="tools-list" class="tools-timeline">
+                            <!-- Populated dynamically -->
+                        </ul>
+                    </div>
+
+                    <!-- Iterations Breakdown -->
+                    <div class="trace-card">
+                        <h4>Execution Metrics</h4>
+                        <div class="metrics-grid">
+                            <div class="metric-item">
+                                <span class="metric-val" id="metric-iterations">0</span>
+                                <span class="metric-lbl">Agent Iterations</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-val" id="metric-obs-count">0</span>
+                                <span class="metric-lbl">Real Observations</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real Observations JSON & Details -->
+                <div class="details-accordion">
+                    <details open>
+                        <summary>Real MCP Tool Observations</summary>
+                        <div id="observations-container" class="observations-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Reflection Verification Audit -->
+                <div class="details-accordion">
+                    <details open>
+                        <summary>Reflection & Grounding Verification Audit</summary>
+                        <div id="reflection-container" class="reflection-details">
+                            <div class="audit-summary" id="audit-summary-text">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <table class="claims-table">
+                                <thead>
+                                    <tr>
+                                        <th>Claim Type</th>
+                                        <th>Claimed Value</th>
+                                        <th>Status</th>
+                                        <th>Verification Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="claims-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <p>Smart Finance Agent • FastMCP over Stdio • SQLite Database • Grounding & Reflection Layer</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
