@@ -12,6 +12,7 @@ from mcp_server.tools.expenses import execute_get_expenses
 from mcp_server.tools.budgets import execute_get_budget, execute_compare_budget
 from mcp_server.tools.calculator import execute_calculate_total
 from mcp_server.tools.analytics import execute_get_spending_by_category
+from mcp_server.tools.documents import execute_search_documents
 
 mcp = MCPServer("Smart Finance Server")
 
@@ -65,6 +66,14 @@ def get_spending_by_category(month: Optional[str] = None) -> dict:
     Returns categories with spent totals, highest spending category, and grand total.
     """
     return execute_get_spending_by_category(month=month)
+
+@mcp.tool()
+def search_documents(query: str, top_k: Optional[int] = 3) -> dict:
+    """
+    Search uploaded financial documents, PDF statements, tax rules, receipts, and credit card policy terms using vector similarity search (RAG).
+    Returns relevant text chunks with similarity scores and document metadata.
+    """
+    return execute_search_documents(query=query, top_k=top_k)
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -37,7 +37,9 @@ class FinanceMCPClient:
                         schema = getattr(tool, "inputSchema", None)
                         if callable(schema):
                             schema = schema()
-                        elif schema is None and hasattr(tool, "schema") and callable(tool.schema):
+                        elif schema is None and hasattr(tool, "model_json_schema") and callable(getattr(tool, "model_json_schema")):
+                            schema = tool.model_json_schema()
+                        elif schema is None and hasattr(tool, "schema") and callable(getattr(tool, "schema")):
                             schema = tool.schema()
                         
                         if isinstance(schema, BaseModel):

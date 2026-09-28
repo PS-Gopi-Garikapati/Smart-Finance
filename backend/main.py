@@ -51,8 +51,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from rag.vector_store import rag_store
+from rag.seed_docs import seed_financial_documents
+
 class QuestionRequest(BaseModel):
     question: str
+
+class DocumentUploadRequest(BaseModel):
+    doc_id: str
+    title: str
+    category: str
+    content: str
+
+class SearchDocumentsRequest(BaseModel):
+    query: str
+    top_k: int = 3
 
 @app.post("/api/ask", response_model=AgentResponse)
 async def ask_finance_question(req: QuestionRequest):
@@ -70,6 +83,37 @@ async def ask_finance_question(req: QuestionRequest):
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Agent execution error: {str(e)}")
+
+@app.get("/api/documents")
+async def list_rag_documents():
+    """List all financial documents currently indexed in the RAG Vector Store."""
+    if not rag_store.documents:
+        seed_financial_documents()
+    return {"success": True, "documents": rag_store.list_documents()}
+
+@app.post("/api/documents")
+async def add_rag_document(doc: DocumentUploadRequest):
+    """Add a new financial document, receipt, or policy text to the RAG Vector Store."""
+    chunks = rag_store.add_document(
+        doc_id=doc.doc_id,
+        title=doc.title,
+        category=doc.category,
+        content=doc.content
+    )
+    return {
+        "success": True,
+        "message": f"Document '{doc.title}' successfully indexed into RAG store ({chunks} chunks).",
+        "doc_id": doc.doc_id,
+        "chunks_indexed": chunks
+    }
+
+@app.post("/api/documents/search")
+async def search_rag_documents(req: SearchDocumentsRequest):
+    """Perform RAG vector similarity search directly on indexed financial documents."""
+    if not rag_store.documents:
+        seed_financial_documents()
+    results = rag_store.search(query=req.query, top_k=req.top_k)
+    return {"success": True, "query": req.query, "results": results}
 
 # Mount static frontend directory
 frontend_dir = os.path.join(ROOT_DIR, "frontend")

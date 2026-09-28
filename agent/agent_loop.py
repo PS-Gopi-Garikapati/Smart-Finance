@@ -35,13 +35,13 @@ class GoalBasedFinanceAgent:
         # Step 1: Connect & Discover MCP Tools
         print("MCP SERVER & HANDSHAKE:")
         tools = await self.tool_discoverer.discover_tools()
-        print("✓ Connected to MCP Server via stdio protocol")
-        print("✓ MCP Handshake successful")
+        print("[OK] Connected to MCP Server via stdio protocol")
+        print("[OK] MCP Handshake successful")
         
         tool_names = [t["name"] for t in tools]
         print(f"TOOLS DISCOVERED ({len(tools)}):")
         for tname in tool_names:
-            print(f"  • {tname}")
+            print(f"  * {tname}")
         print("-" * 60)
 
         tools_formatted = self.tool_discoverer.format_tools_for_prompt(tools)

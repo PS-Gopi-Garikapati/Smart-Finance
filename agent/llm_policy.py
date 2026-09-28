@@ -23,7 +23,8 @@ RULES FOR TOOL SELECTION:
 5. If you need to calculate totals from multiple numbers, call `calculate_total`.
 6. If you have both spent amount and budget amount, call `compare_budget`.
 7. If asked for category comparisons or highest spending, call `get_spending_by_category`.
-8. Once you have sufficient real tool results to answer the question, output `final_answer`.
+8. If asked about documents, receipt details, tax rules, fee policies, warranties, or company expense policies, call `search_documents`.
+9. Once you have sufficient real tool results to answer the question, output `final_answer`.
 
 CRITICAL SAFETY RULE:
 - NEVER invent financial figures, spending totals, or budgets.
@@ -157,6 +158,27 @@ class LLMPolicy:
 
         # Check existing tools executed
         executed_tools = [o.tool_name for o in observations]
+
+        # Case Document / RAG search question ("What is the tax deduction policy?", "receipt details", "annual fee")
+        doc_keywords = ["policy", "document", "receipt", "tax", "fee", "deduction", "warranty", "rule", "reimbursement", "credit card", "apple", "terms"]
+        if any(k in q_lower for k in doc_keywords) and not any(k in q_lower for k in ["spent", "budget", "exceed", "highest"]):
+            if "search_documents" not in executed_tools:
+                return LLMAction(
+                    action="tool_call",
+                    tool_name="search_documents",
+                    arguments={"query": question, "top_k": 3},
+                    thought="Execute RAG vector search to find relevant document chunks."
+                )
+            else:
+                doc_obs = next(o for o in observations if o.tool_name == "search_documents")
+                res = doc_obs.result
+                results = res.get("results", [])
+                if results:
+                    top_match = results[0]
+                    ans = f"Based on financial document '{top_match.get('title')}': {top_match.get('content')}"
+                else:
+                    ans = "No relevant financial documents found matching your search query."
+                return LLMAction(action="final_answer", answer=ans)
 
         # Case A: Budget comparison question ("Did I exceed my food budget?")
         if "budget" in q_lower or "exceed" in q_lower or "over" in q_lower:

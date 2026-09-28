@@ -40,6 +40,16 @@ class ReflectionEvaluator:
                         observed_numbers.add(val)
                         observed_numbers.add(round(val, 2))
 
+            # RAG document search results text extraction
+            if "results" in res and isinstance(res["results"], list):
+                for item in res["results"]:
+                    if isinstance(item, dict):
+                        content_text = str(item.get("content", "")) + " " + str(item.get("title", ""))
+                        content_nums = self._extract_numbers_from_text(content_text)
+                        for n in content_nums:
+                            observed_numbers.add(n)
+                            observed_numbers.add(round(n, 2))
+
             # Statuses
             if "status" in res:
                 observed_statuses.add(str(res["status"]).upper())
