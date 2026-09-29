@@ -45,7 +45,7 @@ app = FastAPI(
 # Enable CORS for local web interfaces
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,7 +82,7 @@ async def ask_finance_question(req: QuestionRequest):
         return response
     except Exception as e:
         logger.error(f"Error processing question: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Agent execution error: {str(e)}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred while processing your request.")
 
 @app.get("/api/documents")
 async def list_rag_documents():

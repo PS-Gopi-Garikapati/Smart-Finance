@@ -1,5 +1,12 @@
+import re
 from typing import Dict, Any, Optional
 from database.database import execute_query
+
+def validate_month_format(month_str: str) -> bool:
+    """Validate that month is in YYYY-MM format with valid month integer 01-12."""
+    if not isinstance(month_str, str) or not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", month_str.strip()):
+        return False
+    return True
 
 def execute_get_budget(
     category: str,
@@ -14,11 +21,11 @@ def execute_get_budget(
             "message": "Category must be a non-empty string."
         }
 
-    if not month or not isinstance(month, str):
+    if not month or not validate_month_format(month):
         return {
             "success": False,
             "error": "INVALID_ARGUMENT",
-            "message": "Month must be a non-empty string in YYYY-MM format."
+            "message": f"Invalid month format '{month}'. Must be a valid YYYY-MM format (e.g. '2026-09')."
         }
 
     query = "SELECT budget_amount FROM budgets WHERE LOWER(category) = LOWER(?) AND month = ?"

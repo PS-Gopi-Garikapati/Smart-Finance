@@ -64,16 +64,16 @@ User Question (Web UI / REST API)
 
 | Requirement | Description & Implementation | Target File |
 | :--- | :--- | :--- |
-| **Practical Problem** | Natural language analysis of personal expenses, budgets, and spending trends | [`frontend/index.html`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/frontend/index.html) |
-| **LLM Policy** | Ollama chat integration with Pydantic JSON validation & rule fallback | [`agent/llm_policy.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/llm_policy.py) |
-| **MCP Tools** | 5 finance tools: `get_expenses`, `get_budget`, `calculate_total`, `compare_budget`, `get_spending_by_category` | [`mcp_server/tools/`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_server/tools/) |
-| **MCP Protocol** | Real stdio client-server protocol connection & JSON-RPC handshake | [`mcp_client/client.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/mcp_client/client.py) |
-| **Dynamic Agent Loop** | Bounded step-by-step iteration loop (`MAX_ITERATIONS = 5`) | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
-| **Real Database Execution** | Real SQLite queries for expense records and configured budgets | [`database/database.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/database/database.py) |
-| **Grounded Answers** | Answers generated strictly from accumulated observation state | [`agent/agent_loop.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/agent/agent_loop.py) |
-| **Reflection Audit** | Independent verification checking numerical figures against recorded observations | [`reflection/evaluator.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/reflection/evaluator.py) |
-| **Reliability & Edge Cases**| Exception handling for missing data, unknown tools, and malformed JSON | [`tests/test_failures.py`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/test_failures.py) |
-| **Automated Tests** | 22 Pytest unit and integration test cases | [`tests/`](file:///c:/Users/GopiChandGarikapati/Desktop/L2%20smart%20finace/tests/) |
+| **Practical Problem** | Natural language analysis of personal expenses, budgets, and spending trends | [`frontend/index.html`](frontend/index.html) |
+| **LLM Policy** | Ollama chat integration with Pydantic JSON validation & degraded offline fallback | [`agent/llm_policy.py`](agent/llm_policy.py) |
+| **MCP Tools** | Specialized finance tools: `get_expenses`, `get_budget`, `calculate_total`, `compare_budget`, `get_spending_by_category`, `search_documents` | [`mcp_server/tools/`](mcp_server/tools/) |
+| **MCP Protocol** | Real stdio client-server protocol connection & JSON-RPC handshake | [`mcp_client/client.py`](mcp_client/client.py) |
+| **Dynamic Agent Loop** | Bounded step-by-step iteration loop (`MAX_ITERATIONS = 5`) | [`agent/agent_loop.py`](agent/agent_loop.py) |
+| **Real Database Execution** | Real SQLite queries for expense records and configured budgets | [`database/database.py`](database/database.py) |
+| **Grounded Answers** | Answers generated strictly from accumulated observation state | [`agent/agent_loop.py`](agent/agent_loop.py) |
+| **Reflection Audit** | Verification checking numerical & qualitative claims (categories, dates, status) against observations | [`reflection/evaluator.py`](reflection/evaluator.py) |
+| **Reliability & Edge Cases**| Exception handling, tool input validation (Pydantic/Regex), and malformed JSON recovery | [`tests/test_failures.py`](tests/test_failures.py) |
+| **Automated Tests** | Comprehensive Pytest unit and integration test suite | [`tests/`](tests/) |
 
 ---
 
@@ -114,10 +114,12 @@ Smart-Finance/
 │   ├── index.html          # Web dashboard interface
 │   ├── style.css           # Styling rules
 │   └── script.js           # Frontend interactive API logic
-└── tests/                  # Pytest test suite (22 tests)
+└── tests/                  # Pytest test suite
     ├── test_agent.py
     ├── test_failures.py
     ├── test_mcp.py
+    ├── test_model_behavior.py
+    ├── test_rag.py
     ├── test_reflection.py
     └── test_tools.py
 ```

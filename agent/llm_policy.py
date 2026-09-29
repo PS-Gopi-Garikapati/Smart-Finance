@@ -98,9 +98,21 @@ class LLMPolicy:
                     if action:
                         return action
         except Exception as e:
-            logger.warning(f"Ollama call failed or offline ({str(e)}). Engaging deterministic policy fallback.")
+            logger.warning(
+                f"Ollama/LLM call unavailable ({str(e)}). "
+                f"Operating in DEGRADED OFFLINE FALLBACK MODE."
+            )
 
         # Fallback deterministic dynamic policy for offline environments/test suite
+        return self._rule_based_fallback(question, observation_tracker, iteration)
+
+    def run_fallback_policy(
+        self,
+        question: str,
+        observation_tracker: ObservationTracker,
+        iteration: int
+    ) -> LLMAction:
+        """Explicit entrypoint for testing the degraded offline policy separately."""
         return self._rule_based_fallback(question, observation_tracker, iteration)
 
     def _parse_and_validate_json(self, content: str) -> Optional[LLMAction]:
@@ -125,9 +137,44 @@ class LLMPolicy:
         observation_tracker: ObservationTracker,
         iteration: int
     ) -> LLMAction:
-        """Deterministic policy layer ensuring intelligent goal progress when Ollama is unavailable."""
+        """
+        DEGRADED OFFLINE FALLBACK POLICY:
+        Dynamic policy layer used when Ollama/LLM server is unavailable.
+        Uses observation state tracking and observation error repair.
+        """
         q_lower = question.lower()
         observations = observation_tracker.observations
+
+        # Observation-Driven Error Repair: Check if last tool call failed (e.g. UNKNOWN_TOOL)
+        if observations:
+            last_obs = observations[-1]
+            last_res = last_obs.result
+            if isinstance(last_res, dict) and not last_res.get("success"):
+                err = last_res.get("error")
+                if err == "UNKNOWN_TOOL":
+                    logger.info(f"Observation error detected: '{last_obs.tool_name}' is UNKNOWN_TOOL. Repairing tool selection.")
+                    # Select valid tool based on user question context
+                    if "budget" in q_lower or "exceed" in q_lower:
+                        return LLMAction(
+                            action="tool_call",
+                            tool_name="get_expenses",
+                            arguments={"category": "Food", "month": "2026-09"},
+                            thought="Tool repair: 'get_expenses' selected after invalid tool error."
+                        )
+                    elif "highest" in q_lower or "category" in q_lower:
+                        return LLMAction(
+                            action="tool_call",
+                            tool_name="get_spending_by_category",
+                            arguments={"month": "2026-09"},
+                            thought="Tool repair: 'get_spending_by_category' selected after invalid tool error."
+                        )
+                    else:
+                        return LLMAction(
+                            action="tool_call",
+                            tool_name="get_expenses",
+                            arguments={"month": "2026-09"},
+                            thought="Tool repair: default to 'get_expenses' following invalid tool observation."
+                        )
 
         # Extract year if mentioned (e.g. 2025, 2024, 2026)
         year_match = re.search(r'\b(20\d{2})\b', question)
@@ -156,8 +203,8 @@ class LLMPolicy:
                 category = cat.capitalize()
                 break
 
-        # Check existing tools executed
-        executed_tools = [o.tool_name for o in observations]
+        # Check existing successful tool executions
+        executed_tools = [o.tool_name for o in observations if isinstance(o.result, dict) and o.result.get("success")]
 
         # Case Document / RAG search question ("What is the tax deduction policy?", "receipt details", "annual fee")
         doc_keywords = ["policy", "document", "receipt", "tax", "fee", "deduction", "warranty", "rule", "reimbursement", "credit card", "apple", "terms"]

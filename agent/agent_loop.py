@@ -1,3 +1,4 @@
+import sys
 import logging
 from typing import Dict, Any, List, Optional
 from mcp_client.client import FinanceMCPClient
@@ -10,6 +11,14 @@ from reflection.evaluator import ReflectionEvaluator
 logger = logging.getLogger("SmartFinanceAgent")
 
 MAX_ITERATIONS = 5
+
+def safe_print(msg: str):
+    """Safely print text to stdout without crashing on Windows cp1252 charmap encoding."""
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        encoded = msg.encode("ascii", errors="replace").decode("ascii")
+        print(encoded)
 
 class GoalBasedFinanceAgent:
     """Goal-Based Tool-Calling Agent with dynamic iteration loop, MCP client, and Reflection layer."""
@@ -27,22 +36,22 @@ class GoalBasedFinanceAgent:
 
     async def run(self, question: str) -> AgentResponse:
         """Execute the dynamic agent loop for a user natural-language financial question."""
-        print("\n" + "=" * 60)
-        print("SMART FINANCE AGENT - GOAL-BASED AGENT LOOP")
-        print("=" * 60)
-        print(f"USER QUESTION:\n\"{question}\"\n")
+        safe_print("\n" + "=" * 60)
+        safe_print("SMART FINANCE AGENT - GOAL-BASED AGENT LOOP")
+        safe_print("=" * 60)
+        safe_print(f"USER QUESTION:\n\"{question}\"\n")
 
         # Step 1: Connect & Discover MCP Tools
-        print("MCP SERVER & HANDSHAKE:")
+        safe_print("MCP SERVER & HANDSHAKE:")
         tools = await self.tool_discoverer.discover_tools()
-        print("[OK] Connected to MCP Server via stdio protocol")
-        print("[OK] MCP Handshake successful")
+        safe_print("[OK] Connected to MCP Server via stdio protocol")
+        safe_print("[OK] MCP Handshake successful")
         
         tool_names = [t["name"] for t in tools]
-        print(f"TOOLS DISCOVERED ({len(tools)}):")
+        safe_print(f"TOOLS DISCOVERED ({len(tools)}):")
         for tname in tool_names:
-            print(f"  * {tname}")
-        print("-" * 60)
+            safe_print(f"  * {tname}")
+        safe_print("-" * 60)
 
         tools_formatted = self.tool_discoverer.format_tools_for_prompt(tools)
         observation_tracker = ObservationTracker()
@@ -54,7 +63,7 @@ class GoalBasedFinanceAgent:
         # Step 2: Dynamic Agent Iteration Loop
         for iteration in range(1, MAX_ITERATIONS + 1):
             iterations_count = iteration
-            print(f"\n[ITERATION {iteration}/{MAX_ITERATIONS}]")
+            safe_print(f"\n[ITERATION {iteration}/{MAX_ITERATIONS}]")
 
             # LLM policy decision
             action_decision = await self.llm_policy.decide_next_action(
@@ -68,16 +77,16 @@ class GoalBasedFinanceAgent:
                 t_name = action_decision.tool_name
                 args = action_decision.arguments or {}
                 
-                print(f"  Selected Tool: `{t_name}`")
-                print(f"  Arguments: {args}")
+                safe_print(f"  Selected Tool: `{t_name}`")
+                safe_print(f"  Arguments: {args}")
                 if action_decision.thought:
-                    print(f"  Reasoning: {action_decision.thought}")
+                    safe_print(f"  Reasoning: {action_decision.thought}")
 
                 tools_used.append(t_name)
 
                 # Execute tool strictly through MCP client
                 tool_result = await self.mcp_client.invoke_tool(t_name, args)
-                print(f"  OBSERVATION: {tool_result}")
+                safe_print(f"  OBSERVATION: {tool_result}")
 
                 # Store real result as observation
                 observation_tracker.add(
@@ -89,7 +98,7 @@ class GoalBasedFinanceAgent:
 
             elif action_decision.action == "final_answer":
                 final_draft_answer = action_decision.answer or "Information processing complete."
-                print(f"  FINAL DRAFT ANSWER:\n  {final_draft_answer}")
+                safe_print(f"  FINAL DRAFT ANSWER:\n  {final_draft_answer}")
                 break
 
         # Fallback if MAX_ITERATIONS reached without explicit final_answer
@@ -99,8 +108,8 @@ class GoalBasedFinanceAgent:
                 "Current information gathered: " + observation_tracker.format_for_llm()
             )
 
-        print("\n" + "-" * 60)
-        print("REFLECTION & GROUNDING VERIFICATION:")
+        safe_print("\n" + "-" * 60)
+        safe_print("REFLECTION & GROUNDING VERIFICATION:")
         
         # Step 3: Run Reflection & Verification
         reflection_result = self.evaluator.evaluate(
@@ -108,11 +117,11 @@ class GoalBasedFinanceAgent:
             observations=observation_tracker.get_all()
         )
 
-        print(f"  GROUNDING STATUS: {reflection_result.grounding_status}")
-        print(f"  SUMMARY: {reflection_result.summary}")
+        safe_print(f"  GROUNDING STATUS: {reflection_result.grounding_status}")
+        safe_print(f"  SUMMARY: {reflection_result.summary}")
         if reflection_result.grounding_status == "UNSUPPORTED_CLAIMS":
-            print(f"  CORRECTED ANSWER: {reflection_result.verified_answer}")
-        print("=" * 60 + "\n")
+            safe_print(f"  CORRECTED ANSWER: {reflection_result.verified_answer}")
+        safe_print("=" * 60 + "\n")
 
         return AgentResponse(
             question=question,

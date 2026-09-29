@@ -1,17 +1,25 @@
+import re
 from typing import Dict, Any, Optional
 from database.database import execute_query
+
+def validate_month_format(month_str: str) -> bool:
+    """Validate that month is in YYYY-MM format with valid month integer 01-12."""
+    if not isinstance(month_str, str) or not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", month_str.strip()):
+        return False
+    return True
 
 def execute_get_spending_by_category(
     month: Optional[str] = None,
     db_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """Retrieve total spending grouped by category for a given month or overall."""
-    if month is not None and not isinstance(month, str):
-        return {
-            "success": False,
-            "error": "INVALID_ARGUMENT",
-            "message": "Month must be a string in YYYY-MM format."
-        }
+    if month is not None:
+        if not validate_month_format(month):
+            return {
+                "success": False,
+                "error": "INVALID_ARGUMENT",
+                "message": f"Invalid month format '{month}'. Must be YYYY-MM with month between 01 and 12 (e.g., '2026-09')."
+            }
 
     query = """
         SELECT category, SUM(amount) as total_spent, COUNT(*) as transaction_count

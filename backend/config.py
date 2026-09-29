@@ -11,5 +11,10 @@ class Settings:
     DB_PATH: str = os.getenv("DB_PATH", os.path.join(os.path.dirname(os.path.dirname(__file__)), "database", "finance.db"))
     PORT: int = int(os.getenv("PORT", "8000"))
     HOST: str = os.getenv("HOST", "0.0.0.0")
+    CORS_ORIGINS: list = [
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000").split(",")
+        if origin.strip()
+    ]
 
 settings = Settings()

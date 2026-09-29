@@ -20,6 +20,34 @@ def test_get_expenses_invalid_arg():
     assert res["success"] is False
     assert res["error"] == "INVALID_ARGUMENT"
 
+def test_get_expenses_invalid_month_format():
+    res = execute_get_expenses(category="Food", month="2026-99")
+    assert res["success"] is False
+    assert res["error"] == "INVALID_ARGUMENT"
+    assert "Invalid month format" in res["message"]
+
+def test_get_expenses_invalid_date_format():
+    res = execute_get_expenses(start_date="2026-13-45")
+    assert res["success"] is False
+    assert res["error"] == "INVALID_ARGUMENT"
+    assert "Invalid start_date format" in res["message"]
+
+def test_get_expenses_invalid_date_range():
+    res = execute_get_expenses(start_date="2026-09-30", end_date="2026-09-01")
+    assert res["success"] is False
+    assert res["error"] == "INVALID_ARGUMENT"
+    assert "Invalid date range" in res["message"]
+
+def test_get_budget_invalid_month():
+    res = execute_get_budget(category="Food", month="2026-99")
+    assert res["success"] is False
+    assert res["error"] == "INVALID_ARGUMENT"
+
+def test_get_spending_by_category_invalid_month():
+    res = execute_get_spending_by_category(month="invalid-month")
+    assert res["success"] is False
+    assert res["error"] == "INVALID_ARGUMENT"
+
 def test_get_budget_valid():
     res = execute_get_budget(category="Food", month="2026-09")
     assert res["success"] is True
