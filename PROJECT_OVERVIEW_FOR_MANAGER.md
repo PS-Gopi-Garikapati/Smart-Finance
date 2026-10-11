@@ -96,7 +96,7 @@ Smart-Finance/
 ├── database/               # SQLite Connection Manager, Schema & Seed Script
 ├── reflection/             # Reflection Evaluator & Grounding Verification Layer
 ├── frontend/               # Web Dashboard UI with Live Tool Tracing & RAG Upload
-└── tests/                  # 26 Pytest Automated Unit & Integration Tests (100% Pass)
+└── tests/                  # 56 Pytest Automated Unit & Integration Tests (100% Pass)
 ```
 
 ---
@@ -117,7 +117,7 @@ Here is a step-by-step script you can use when explaining the project to your ma
 > *"To ensure accuracy, we added an independent **Reflection & Grounding Audit Layer**. Before any answer is displayed to the user, the auditor verifies that every dollar amount and date in the draft answer matches actual tool observations. If an LLM tries to guess a figure, the reflection layer catches and corrects it."*
 
 ### 4. Verification & Readiness
-> *"The project is fully tested with 26 automated unit and integration tests passing in Pytest, complete with a REST API and an interactive Web Dashboard."*
+> *"The project is fully tested with 56 automated unit and integration tests passing in Pytest (100% pass rate), complete with a REST API and an interactive Web Dashboard."*
 
 ---
 

@@ -112,13 +112,13 @@ document.addEventListener('DOMContentLoaded', () => {
         claimsTableBody.innerHTML = '';
         if (refl.claims_checked && refl.claims_checked.length > 0) {
             refl.claims_checked.forEach(c => {
-                const tr = document.createElement('tr');
-                const isPass = c.is_verified;
+                const isPass = (c.is_verified !== undefined) ? c.is_verified : Boolean(c.is_supported);
+                const detailText = c.details || c.note || (c.verified_value !== undefined && c.verified_value !== null ? `Verified against: ${JSON.stringify(c.verified_value)}` : 'Verified against observation evidence.');
                 tr.innerHTML = `
                     <td><code>${c.claim_type}</code></td>
                     <td>${c.claimed_value}</td>
                     <td class="${isPass ? 'status-pass' : 'status-fail'}">${isPass ? '✓ PASSED' : '✗ REJECTED'}</td>
-                    <td>${c.details}</td>
+                    <td>${detailText}</td>
                 `;
                 claimsTableBody.appendChild(tr);
             });

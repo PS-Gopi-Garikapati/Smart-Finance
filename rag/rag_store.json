@@ -367,5 +367,43 @@
       "of": 0.2581988897471611,
       "incurrence": 0.2581988897471611
     }
+  },
+  {
+    "id": "test_lease_agreement_chunk_1",
+    "doc_id": "test_lease_agreement",
+    "title": "Apartment Lease Agreement 2026",
+    "category": "Housing",
+    "content": "Monthly rent is $2,200 due on the 1st of each month",
+    "vector": {
+      "monthly": 0.2886751345948129,
+      "rent": 0.2886751345948129,
+      "is": 0.2886751345948129,
+      "2": 0.2886751345948129,
+      "200": 0.2886751345948129,
+      "due": 0.2886751345948129,
+      "on": 0.2886751345948129,
+      "the": 0.2886751345948129,
+      "1st": 0.2886751345948129,
+      "of": 0.2886751345948129,
+      "each": 0.2886751345948129,
+      "month": 0.2886751345948129
+    }
+  },
+  {
+    "id": "test_lease_agreement_chunk_2",
+    "doc_id": "test_lease_agreement",
+    "title": "Apartment Lease Agreement 2026",
+    "category": "Housing",
+    "content": "Late fee of $75 applies after 5 days.",
+    "vector": {
+      "late": 0.35355339059327373,
+      "fee": 0.35355339059327373,
+      "of": 0.35355339059327373,
+      "75": 0.35355339059327373,
+      "applies": 0.35355339059327373,
+      "after": 0.35355339059327373,
+      "5": 0.35355339059327373,
+      "days": 0.35355339059327373
+    }
   }
 ]

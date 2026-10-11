@@ -33,6 +33,11 @@ async def lifespan(app: FastAPI):
     if not os.path.exists(db_file) or os.path.getsize(db_file) == 0:
         seed_database(db_file)
     logger.info("Database ready.")
+    click_host = "localhost" if settings.HOST == "0.0.0.0" else settings.HOST
+    print("\n==================================================")
+    print("  CLICKABLE LOCALHOST LINK TO WEBSITE:")
+    print(f"  http://{click_host}:{settings.PORT}/")
+    print("==================================================\n")
     yield
     logger.info("Shutting down backend server.")
 
@@ -122,4 +127,11 @@ if os.path.exists(frontend_dir):
 
 if __name__ == "__main__":
     import uvicorn
+    from backend.config import settings
+
+    click_host = "localhost" if settings.HOST == "0.0.0.0" else settings.HOST
+    print("\n==================================================")
+    print("  CLICKABLE LOCALHOST LINK TO WEBSITE:")
+    print(f"  http://{click_host}:{settings.PORT}/")
+    print("==================================================\n")
     uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True)

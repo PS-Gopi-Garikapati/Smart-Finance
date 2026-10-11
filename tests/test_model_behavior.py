@@ -1,4 +1,5 @@
 import pytest
+import httpx
 from typing import Optional
 from agent.schemas import LLMAction, AgentResponse
 from agent.llm_policy import LLMPolicy
@@ -32,7 +33,7 @@ class MockedLLMPolicy(LLMPolicy):
 
 @pytest.mark.asyncio
 async def test_different_model_responses_select_different_tools():
-    """Requirement 2: Prove different model responses select different tools."""
+    """Prove different model responses select different tools."""
     policy1 = MockedLLMPolicy([
         LLMAction(action="tool_call", tool_name="get_expenses", arguments={"category": "Food", "month": "2026-09"}),
         LLMAction(action="final_answer", answer="Spent 6000 on food.")
@@ -51,7 +52,7 @@ async def test_different_model_responses_select_different_tools():
 
 @pytest.mark.asyncio
 async def test_agent_selects_tool_based_on_observations():
-    """Requirement 2: Prove the agent can select next tool dynamically based on observations."""
+    """Prove the agent can select next tool dynamically based on observations."""
     class DynamicObservationPolicy(LLMPolicy):
         async def decide_next_action(
             self, question: str, tools_formatted: str, observation_tracker: ObservationTracker, iteration: int
@@ -76,8 +77,23 @@ async def test_agent_selects_tool_based_on_observations():
     assert "get_budget" in resp.tools_used
 
 @pytest.mark.asyncio
+async def test_agent_finishes_without_unnecessary_tools():
+    """Prove the agent can finish without unnecessary tool calls once sufficient evidence is gathered."""
+    policy = MockedLLMPolicy([
+        LLMAction(action="tool_call", tool_name="get_expenses", arguments={"category": "Food", "month": "2026-09"}),
+        LLMAction(action="final_answer", answer="Total spent on Food in 2026-09 is ₹6,000.00.")
+    ])
+    agent = GoalBasedFinanceAgent(llm_policy=policy)
+    resp = await agent.run("What did I spend on food?")
+
+    assert resp.iterations == 2
+    assert resp.tools_used == ["get_expenses"]
+    assert "compare_budget" not in resp.tools_used
+    assert resp.grounding_status == "VERIFIED"
+
+@pytest.mark.asyncio
 async def test_invalid_unknown_tool_selection_repaired():
-    """Requirement 2: Prove an invalid/unknown tool selection can be repaired."""
+    """Prove an invalid/unknown tool selection can be repaired."""
     policy = MockedLLMPolicy([
         # Iteration 1: Attempt invalid non-existent tool
         LLMAction(action="tool_call", tool_name="invalid_finance_tool_xyz", arguments={}),
@@ -96,7 +112,7 @@ async def test_invalid_unknown_tool_selection_repaired():
 
 @pytest.mark.asyncio
 async def test_agent_replans_after_receiving_tool_observation():
-    """Requirement 2: Prove the agent can re-plan after receiving a tool observation."""
+    """Prove the agent can re-plan after receiving a tool observation."""
     class ReplanningPolicy(LLMPolicy):
         async def decide_next_action(
             self, question: str, tools_formatted: str, observation_tracker: ObservationTracker, iteration: int
@@ -116,7 +132,7 @@ async def test_agent_replans_after_receiving_tool_observation():
     assert resp.tools_used == ["get_expenses", "get_spending_by_category"]
 
 def test_deterministic_fallback_tested_separately_as_degraded_mode():
-    """Requirement 2: Test the deterministic fallback policy separately and verify degraded mode."""
+    """Test the deterministic fallback policy separately and verify degraded mode."""
     policy = LLMPolicy()
     tracker = ObservationTracker()
 
@@ -129,3 +145,27 @@ def test_deterministic_fallback_tested_separately_as_degraded_mode():
     assert fallback_action.action == "tool_call"
     assert fallback_action.tool_name == "get_expenses"
     assert fallback_action.arguments.get("category") == "Food"
+
+@pytest.mark.asyncio
+async def test_real_ollama_integration_if_service_active():
+    """Real Ollama integration test executed only when local Ollama service is active."""
+    policy = LLMPolicy()
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as client:
+            resp = await client.get(f"{policy.ollama_host}/api/tags")
+            if resp.status_code != 200:
+                pytest.skip("Local Ollama service returned non-200 status.")
+    except Exception:
+        pytest.skip("Local Ollama instance not running or unreachable at " + policy.ollama_host)
+
+    # If Ollama is running, execute real prompt
+    tracker = ObservationTracker()
+    action = await policy.decide_next_action(
+        question="How much did I spend on food in 2026-09?",
+        tools_formatted="Tool: `get_expenses`\nParameters: (category: str, month: str)",
+        observation_tracker=tracker,
+        iteration=1
+    )
+    assert action.action in ["tool_call", "final_answer"]
+    if action.action == "tool_call":
+        assert action.tool_name == "get_expenses"
