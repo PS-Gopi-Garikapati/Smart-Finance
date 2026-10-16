@@ -1,8 +1,11 @@
 import os
 import sys
 import logging
+import time
+import threading
+from collections import defaultdict
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -59,6 +62,39 @@ app.add_middleware(
 from rag.vector_store import rag_store
 from rag.seed_docs import seed_financial_documents
 
+class RateLimiter:
+    """In-memory sliding window rate limiter per client IP address."""
+
+    def __init__(self, requests_per_minute: int = 30):
+        self.requests_per_minute = requests_per_minute
+        self.requests: defaultdict = defaultdict(list)
+        self._lock = threading.Lock()
+
+    def check(self, request: Request):
+        client_ip = request.headers.get("x-forwarded-for")
+        if client_ip:
+            client_ip = client_ip.split(",")[0].strip()
+        else:
+            client_ip = request.client.host if request.client else "127.0.0.1"
+
+        now = time.time()
+        window_start = now - 60.0
+
+        with self._lock:
+            # Filter timestamps to the active 60s sliding window
+            timestamps = [t for t in self.requests[client_ip] if t > window_start]
+            if len(timestamps) >= self.requests_per_minute:
+                logger.warning(f"Rate limit exceeded for client {client_ip} ({len(timestamps)} requests in last 60s)")
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Rate limit exceeded. Maximum {self.requests_per_minute} inquiries allowed per minute.",
+                    headers={"Retry-After": "60"}
+                )
+            timestamps.append(now)
+            self.requests[client_ip] = timestamps
+
+ask_rate_limiter = RateLimiter(requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
+
 class QuestionRequest(BaseModel):
     question: str
 
@@ -73,11 +109,13 @@ class SearchDocumentsRequest(BaseModel):
     top_k: int = 3
 
 @app.post("/api/ask", response_model=AgentResponse)
-async def ask_finance_question(req: QuestionRequest):
+async def ask_finance_question(req: QuestionRequest, request: Request):
     """
     Process natural-language financial question through the Goal-Based Agent loop.
     Returns grounded answer, tool execution trace, observations, and reflection audit.
+    Protected by per-IP rate limiting.
     """
+    ask_rate_limiter.check(request)
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
@@ -134,4 +172,4 @@ if __name__ == "__main__":
     print("  CLICKABLE LOCALHOST LINK TO WEBSITE:")
     print(f"  http://{click_host}:{settings.PORT}/")
     print("==================================================\n")
-    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+    uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)

@@ -121,6 +121,14 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+Create the local environment file from the provided template before starting the app:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+On macOS or Linux, use `cp .env.example .env`. The defaults run without Ollama by using the deterministic fallback; install Ollama and pull the configured model to enable model-backed decisions.
+
 ### 3. Initialize & Seed Database
 ```bash
 python -m database.seed_data
@@ -132,7 +140,7 @@ python -m rag.seed_docs
 # Compilation check
 python -m compileall -q agent backend database mcp_client mcp_server rag reflection tests
 
-# Run all 56 tests with pytest
+# Run all 63 tests with pytest
 pytest tests/ -v
 # or
 python -m pytest tests/ -q
@@ -145,30 +153,33 @@ python -m backend.main
 ```
 Open **`http://localhost:8000`** in your browser.
 
+### 6. Containerized Deployment (Docker)
+```bash
+# Option A: Build and run with Docker
+docker build -t smart-finance-agent .
+docker run -p 8000:8000 smart-finance-agent
+
+# Option B: Run with Docker Compose
+docker compose up --build
+```
+
 ---
 
 ## 🧪 Automated Test Suite & Coverage
 
-The repository includes **56 automated unit and integration tests** across 9 test modules with **100% pass rate**:
+The repository includes **63 automated unit and integration tests** across 9 test modules:
 
 ```text
 tests/
 ├── test_agent.py                 # Multi-step loop flows & expense lookups (3 tests)
-├── test_backend_api.py           # FastAPI REST endpoints & document upload (4 tests)
-├── test_date_category_parsing.py # Timeframe/category extraction & clarification (7 tests)
+├── test_backend_api.py           # FastAPI REST endpoints & document upload (5 tests)
+├── test_date_category_parsing.py # Timeframe/category extraction & clarification (10 tests)
 ├── test_failures.py              # Unknown tools, invalid arguments, 5-iter limit (5 tests)
 ├── test_mcp.py                   # MCP handshake & tool invocation (3 tests)
-├── test_model_behavior.py        # Model decisions, observation replanning, stubs (7 tests)
-├── test_rag.py                   # Vector store chunking & document search (4 tests)
+├── test_model_behavior.py        # Model decisions, observation replanning, stubs (8 tests)
+├── test_rag.py                   # Vector store chunking & document search (5 tests)
 ├── test_reflection.py            # Reflection grounding, numbers, status, repair (9 tests)
-└── test_tools.py                 # Tool validations, edge cases & date ranges (14 tests)
-```
-
-### Test Execution Summary
-```text
-============================= test session starts =============================
-platform win32 -- Python 3.12.10, pytest-9.1.1
-56 passed in 55.48s (100% pass rate)
+└── test_tools.py                 # Tool validations, edge cases & date ranges (13 tests)
 ```
 
 ---

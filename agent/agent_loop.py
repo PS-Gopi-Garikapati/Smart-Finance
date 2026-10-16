@@ -123,6 +123,7 @@ class GoalBasedFinanceAgent:
             safe_print(f"  CORRECTED ANSWER: {reflection_result.verified_answer}")
         safe_print("=" * 60 + "\n")
 
+        await self.close()
         return AgentResponse(
             question=question,
             answer=reflection_result.verified_answer,
@@ -132,3 +133,14 @@ class GoalBasedFinanceAgent:
             grounding_status=reflection_result.grounding_status,
             reflection=reflection_result.model_dump()
         )
+
+    async def close(self):
+        """Close persistent MCP client session."""
+        if self.mcp_client:
+            await self.mcp_client.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()

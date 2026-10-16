@@ -23,7 +23,7 @@ MONTH_NAME_TO_NUM: Dict[str, str] = {
 }
 
 def get_reference_date(reference_date: Optional[Any] = None) -> date:
-    """Return configured reference date for current-month awareness (defaults to 2026-09-15)."""
+    """Return the configured reference date, defaulting to today's date."""
     if reference_date is not None:
         if isinstance(reference_date, datetime):
             return reference_date.date()
@@ -35,11 +35,13 @@ def get_reference_date(reference_date: Optional[Any] = None) -> date:
             except ValueError:
                 pass
 
-    env_date = os.getenv("CURRENT_DATE", "2026-09-15")
+    env_date = os.getenv("CURRENT_DATE")
+    if not env_date:
+        return date.today()
     try:
         return datetime.strptime(env_date.strip(), "%Y-%m-%d").date()
     except ValueError:
-        return date(2026, 9, 15)
+        return date.today()
 
 def extract_category(question: str) -> Optional[str]:
     """Extract recognized financial category from text, or None if unspecified."""

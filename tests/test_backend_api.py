@@ -1,6 +1,10 @@
 import pytest
+
+fastapi = pytest.importorskip("fastapi", reason="FastAPI is not installed")
+uvicorn = pytest.importorskip("uvicorn", reason="Uvicorn is not installed")
+
 from httpx import AsyncClient, ASGITransport
-from backend.main import app
+from backend.main import app, ask_rate_limiter
 from database.seed_data import seed_database
 from rag.seed_docs import seed_financial_documents
 
@@ -67,3 +71,28 @@ async def test_backend_documents_endpoints():
         results = search_resp.json()["results"]
         assert len(results) > 0
         assert "75" in results[0]["content"] or "2,200" in results[0]["content"]
+
+@pytest.mark.asyncio
+async def test_backend_ask_rate_limiting():
+    transport = ASGITransport(app=app)
+    original_limit = ask_rate_limiter.requests_per_minute
+    ask_rate_limiter.requests_per_minute = 2
+    ask_rate_limiter.requests.clear()
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            headers = {"x-forwarded-for": "192.168.1.100"}
+            # Request 1
+            r1 = await client.post("/api/ask", json={"question": ""}, headers=headers)
+            assert r1.status_code == 400
+            # Request 2
+            r2 = await client.post("/api/ask", json={"question": ""}, headers=headers)
+            assert r2.status_code == 400
+            # Request 3 -> Exceeds rate limit
+            r3 = await client.post("/api/ask", json={"question": ""}, headers=headers)
+            assert r3.status_code == 429
+            assert "Rate limit exceeded" in r3.json()["detail"]
+            assert r3.headers.get("Retry-After") == "60"
+    finally:
+        ask_rate_limiter.requests_per_minute = original_limit
+        ask_rate_limiter.requests.clear()
+

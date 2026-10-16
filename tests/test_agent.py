@@ -3,7 +3,8 @@ from database.seed_data import seed_database
 from agent.agent_loop import GoalBasedFinanceAgent
 
 @pytest.fixture(autouse=True)
-def setup_db():
+def setup_db(monkeypatch):
+    monkeypatch.setenv("CURRENT_DATE", "2026-09-15")
     seed_database()
 
 @pytest.mark.asyncio

@@ -53,6 +53,53 @@ async def test_malformed_llm_json_recovery():
     assert fallback_action.action == "tool_call"
     assert fallback_action.tool_name == "get_expenses"
 
+def test_missing_budget_returns_explanation_instead_of_retrying():
+    from agent.observations import ObservationTracker
+
+    tracker = ObservationTracker()
+    tracker.add(
+        iteration=1,
+        tool_name="get_expenses",
+        arguments={"category": "Food", "month": "2026-10"},
+        result={"success": True, "category": "Food", "month": "2026-10", "total": 0, "count": 0, "expenses": []}
+    )
+    tracker.add(
+        iteration=2,
+        tool_name="get_budget",
+        arguments={"category": "Food", "month": "2026-10"},
+        result={
+            "success": False,
+            "error": "BUDGET_NOT_FOUND",
+            "message": "No budget found for category 'Food' in month '2026-10'."
+        }
+    )
+
+    action = LLMPolicy().run_fallback_policy(
+        question="Did I exceed my food budget?",
+        observation_tracker=tracker,
+        iteration=3
+    )
+
+    assert action.action == "final_answer"
+    assert "can't determine" in action.answer.lower()
+    assert "no food budget" in action.answer.lower()
+
+@pytest.mark.asyncio
+async def test_agent_answers_when_current_month_budget_is_missing(monkeypatch):
+    monkeypatch.setenv("CURRENT_DATE", "2026-10-16")
+
+    class OfflineFallbackPolicy(LLMPolicy):
+        async def decide_next_action(self, question, tools_formatted, observation_tracker, iteration):
+            return self.run_fallback_policy(question, observation_tracker, iteration)
+
+    agent = GoalBasedFinanceAgent(llm_policy=OfflineFallbackPolicy())
+    response = await agent.run("Did I exceed my food budget?")
+
+    assert response.iterations == 3
+    assert response.tools_used == ["get_expenses", "get_budget"]
+    assert "can't determine" in response.answer.lower()
+    assert "no food budget" in response.answer.lower()
+
 @pytest.mark.asyncio
 async def test_max_iteration_limit():
     """Requirement 11 & 20: Ensure loop stops safely at MAX_ITERATIONS limit."""

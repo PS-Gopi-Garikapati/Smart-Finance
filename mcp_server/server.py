@@ -1,7 +1,7 @@
 import os
 import sys
 from typing import List, Optional
-from mcp.server.mcpserver import MCPServer
+from mcp.server.fastmcp import FastMCP
 
 # Add root directory to sys.path for internal imports
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +14,7 @@ from mcp_server.tools.calculator import execute_calculate_total
 from mcp_server.tools.analytics import execute_get_spending_by_category
 from mcp_server.tools.documents import execute_search_documents
 
-mcp = MCPServer("Smart Finance Server")
+mcp = FastMCP("Smart Finance Server")
 
 @mcp.tool()
 def get_expenses(

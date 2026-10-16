@@ -230,34 +230,86 @@ class LLMPolicy:
         q_lower = question.lower()
         observations = observation_tracker.observations
 
+        # Dynamic Category & Timeframe Extraction (completely data-driven, no hardcoded dates)
+        category = extract_category(question)
+        tf = extract_timeframe(question)
+        month = tf.get("month")
+        start_date = tf.get("start_date")
+        end_date = tf.get("end_date")
+        tf_label = tf.get("timeframe_label", "the requested timeframe")
+
+        budget_intent = any(k in q_lower for k in ("budget", "exceed", "over"))
+        analytics_intent = any(k in q_lower for k in ("highest", "most", "by category"))
+        if start_date or end_date:
+            if budget_intent:
+                return LLMAction(
+                    action="final_answer",
+                    answer=(
+                        "Budget comparisons are available by calendar month. "
+                        "Please specify a month instead of a date range or year."
+                    ),
+                    thought="Clarification requested because the budget tool requires a calendar month."
+                )
+            if analytics_intent:
+                return LLMAction(
+                    action="final_answer",
+                    answer=(
+                        "Category breakdowns are available by calendar month. "
+                        "Please specify a month instead of a date range or year."
+                    ),
+                    thought="Clarification requested because the analytics tool requires a calendar month."
+                )
+
         # 1. Observation-Driven Error Repair: Check if previous tool call encountered an error
         if observations:
             last_obs = observations[-1]
             last_res = last_obs.result
             if isinstance(last_res, dict) and not last_res.get("success"):
                 err = last_res.get("error")
+                if err == "BUDGET_NOT_FOUND" and last_obs.tool_name == "get_budget":
+                    missing_category = last_obs.arguments.get("category") or category or "requested"
+                    missing_month = last_obs.arguments.get("month") or month
+                    period = f" for {missing_month}" if missing_month else f" {tf_label}"
+                    return LLMAction(
+                        action="final_answer",
+                        answer=(
+                            f"I can't determine whether you exceeded your {missing_category} budget{period} "
+                            f"because no {missing_category} budget is configured for that period."
+                        ),
+                        thought="Budget comparison stopped because the requested budget was not configured."
+                    )
                 if err == "UNKNOWN_TOOL":
                     logger.info(f"Observation error detected: '{last_obs.tool_name}' is UNKNOWN_TOOL. Repairing tool selection.")
                     if "budget" in q_lower or "exceed" in q_lower:
                         return LLMAction(
                             action="tool_call",
                             tool_name="get_expenses",
-                            arguments={"category": "Food", "month": "2026-09"},
-                            thought="Tool repair: 'get_expenses' selected after invalid tool error."
+                            arguments={
+                                "category": category or "Food",
+                                "month": month,
+                                "start_date": start_date,
+                                "end_date": end_date
+                            },
+                            thought=f"Tool repair: 'get_expenses' selected after invalid tool error for {tf_label}."
                         )
                     elif "highest" in q_lower or "category" in q_lower:
                         return LLMAction(
                             action="tool_call",
                             tool_name="get_spending_by_category",
-                            arguments={"month": "2026-09"},
-                            thought="Tool repair: 'get_spending_by_category' selected after invalid tool error."
+                            arguments={"month": month},
+                            thought=f"Tool repair: 'get_spending_by_category' selected after invalid tool error for {tf_label}."
                         )
                     else:
                         return LLMAction(
                             action="tool_call",
                             tool_name="get_expenses",
-                            arguments={"month": "2026-09"},
-                            thought="Tool repair: default to 'get_expenses' following invalid tool observation."
+                            arguments={
+                                "category": category,
+                                "month": month,
+                                "start_date": start_date,
+                                "end_date": end_date
+                            },
+                            thought=f"Tool repair: default to 'get_expenses' following invalid tool observation for {tf_label}."
                         )
 
         # 2. Ambiguity Check: Do not assume Food or a random category without evidence
@@ -271,21 +323,13 @@ class LLMPolicy:
                 thought="Clarification request: budget inquiry omitted target category."
             )
 
-        # 3. Dynamic Category & Timeframe Extraction (no hardcoded dates)
-        category = extract_category(question)
-        tf = extract_timeframe(question)
-        month = tf.get("month")
-        start_date = tf.get("start_date")
-        end_date = tf.get("end_date")
-        tf_label = tf.get("timeframe_label", "the requested timeframe")
-
         # Track executed successful tools
         executed_tools = [
             o.tool_name for o in observations
             if isinstance(o.result, dict) and o.result.get("success")
         ]
 
-        # 4. RAG / Unstructured Document Inquiry
+        # 3. RAG / Unstructured Document Inquiry
         doc_keywords = [
             "policy", "document", "receipt", "tax", "fee", "deduction",
             "warranty", "rule", "reimbursement", "credit card", "apple", "terms"
@@ -309,10 +353,9 @@ class LLMPolicy:
                     ans = "No relevant financial documents found matching your search query."
                 return LLMAction(action="final_answer", answer=ans, thought="Document answer synthesized.")
 
-        # 5. Quantitative Budget Comparison ("Did I exceed my food budget?")
-        if "budget" in q_lower or "exceed" in q_lower or "over" in q_lower:
+        # 4. Quantitative Budget Comparison ("Did I exceed my food budget?")
+        if budget_intent:
             target_cat = category or "Food"
-            target_month = month or "2026-09"
 
             if "get_expenses" not in executed_tools:
                 return LLMAction(
@@ -320,7 +363,7 @@ class LLMPolicy:
                     tool_name="get_expenses",
                     arguments={
                         "category": target_cat,
-                        "month": target_month,
+                        "month": month,
                         "start_date": start_date,
                         "end_date": end_date
                     },
@@ -330,8 +373,8 @@ class LLMPolicy:
                 return LLMAction(
                     action="tool_call",
                     tool_name="get_budget",
-                    arguments={"category": target_cat, "month": target_month},
-                    thought=f"Step 2: Retrieve configured budget for {target_cat} in {target_month}."
+                    arguments={"category": target_cat, "month": month},
+                    thought=f"Step 2: Retrieve configured budget for {target_cat} {tf_label}."
                 )
             elif "compare_budget" not in executed_tools:
                 spent = 0.0
@@ -358,14 +401,14 @@ class LLMPolicy:
                     ans = f"No, your {target_cat} spending is within budget."
                 return LLMAction(action="final_answer", answer=ans, thought="Budget comparison completed.")
 
-        # 6. Analytics: Highest spending category
-        if "highest" in q_lower or "most" in q_lower or "by category" in q_lower:
+        # 5. Analytics: Highest spending category
+        if analytics_intent:
             if "get_spending_by_category" not in executed_tools:
                 return LLMAction(
                     action="tool_call",
                     tool_name="get_spending_by_category",
                     arguments={"month": month},
-                    thought="Retrieve category breakdown to identify highest spending."
+                    thought=f"Retrieve category breakdown to identify highest spending {tf_label}."
                 )
             else:
                 obs = next(o for o in observations if o.tool_name == "get_spending_by_category")
@@ -378,7 +421,7 @@ class LLMPolicy:
                     ans = f"No expense data is available for {tf_label}."
                 return LLMAction(action="final_answer", answer=ans, thought="Highest spending category identified.")
 
-        # 7. General Expense Lookup
+        # 6. General Expense Lookup
         if "get_expenses" not in executed_tools:
             return LLMAction(
                 action="tool_call",

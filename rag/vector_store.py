@@ -13,33 +13,71 @@ class SimpleVectorStore:
     """
 
     def __init__(self, persistence_file: Optional[str] = None):
-        self.persistence_file = persistence_file or os.path.join(
+        self.persistence_file = persistence_file or os.getenv("RAG_STORE_PATH") or os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "rag_store.json"
         )
         self.documents: List[Dict[str, Any]] = []
+        self.idf_weights: Dict[str, float] = {}
         self.load()
 
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text into lowercase words."""
         return re.findall(r'\b\w+\b', text.lower())
 
-    def _get_bow_vector(self, text: str) -> Dict[str, float]:
-        """Compute term frequency vector for a text chunk."""
+    def _recompute_idf(self):
+        """Compute Inverse Document Frequency (IDF) weights across all indexed chunks."""
+        total_docs = len(self.documents)
+        if total_docs == 0:
+            self.idf_weights = {}
+            return
+
+        df: Dict[str, int] = {}
+        for doc in self.documents:
+            unique_terms = set(self._tokenize(doc.get("content", "")))
+            for term in unique_terms:
+                df[term] = df.get(term, 0) + 1
+
+        # Standard smoothed IDF: ln((1 + N) / (1 + df)) + 1
+        self.idf_weights = {
+            term: math.log((1.0 + total_docs) / (1.0 + count)) + 1.0
+            for term, count in df.items()
+        }
+
+    def _compute_tfidf_vector(self, text: str) -> Dict[str, float]:
+        """Compute true TF-IDF vector with L2 normalization."""
         tokens = self._tokenize(text)
         if not tokens:
             return {}
-        counts: Dict[str, float] = {}
+
+        # 1. Term Frequency (TF)
+        tf_counts: Dict[str, float] = {}
         for token in tokens:
-            counts[token] = counts.get(token, 0.0) + 1.0
-        # Normalize
-        norm = math.sqrt(sum(v * v for v in counts.values()))
-        if norm > 0:
-            for k in counts:
-                counts[k] /= norm
-        return counts
+            tf_counts[token] = tf_counts.get(token, 0.0) + 1.0
+
+        total_tokens = float(len(tokens))
+        default_idf = math.log((1.0 + max(1, len(self.documents))) / 1.0) + 1.0
+
+        # 2. TF-IDF weighting
+        tfidf: Dict[str, float] = {}
+        for term, count in tf_counts.items():
+            tf = count / total_tokens
+            idf = self.idf_weights.get(term, default_idf)
+            tfidf[term] = tf * idf
+
+        # 3. L2 Unit Normalization
+        norm = math.sqrt(sum(v * v for v in tfidf.values()))
+        if norm > 0.0:
+            for term in tfidf:
+                tfidf[term] /= norm
+
+        return tfidf
+
+    def _get_bow_vector(self, text: str) -> Dict[str, float]:
+        """Backwards-compatible alias for TF-IDF vector calculation."""
+        return self._compute_tfidf_vector(text)
 
     def _cosine_similarity_bow(self, vec1: Dict[str, float], vec2: Dict[str, float]) -> float:
-        """Compute cosine similarity between two term frequency vectors."""
+        """Compute cosine similarity between two normalized TF-IDF vectors."""
         if not vec1 or not vec2:
             return 0.0
         dot_product = sum(vec1[k] * vec2.get(k, 0.0) for k in vec1 if k in vec2)
@@ -47,7 +85,8 @@ class SimpleVectorStore:
 
     def add_document(self, doc_id: str, title: str, category: str, content: str) -> int:
         """
-        Add a document to the vector store, automatically splitting content into chunks.
+        Add a document to the vector store, automatically splitting content into chunks
+        and indexing with true TF-IDF representations.
         Returns the number of chunks indexed.
         """
         # Simple sentence/paragraph chunking
@@ -58,7 +97,6 @@ class SimpleVectorStore:
         added_chunks = 0
         for idx, chunk in enumerate(raw_chunks):
             chunk_id = f"{doc_id}_chunk_{idx+1}"
-            vector = self._get_bow_vector(chunk)
             
             # Check if chunk already exists
             existing_idx = next((i for i, d in enumerate(self.documents) if d["id"] == chunk_id), None)
@@ -68,13 +106,18 @@ class SimpleVectorStore:
                 "title": title,
                 "category": category,
                 "content": chunk,
-                "vector": vector
+                "vector": {}
             }
             if existing_idx is not None:
                 self.documents[existing_idx] = doc_entry
             else:
                 self.documents.append(doc_entry)
             added_chunks += 1
+
+        # Recompute corpus IDF and refresh TF-IDF vectors
+        self._recompute_idf()
+        for doc in self.documents:
+            doc["vector"] = self._compute_tfidf_vector(doc["content"])
 
         self.save()
         return added_chunks
@@ -129,17 +172,21 @@ class SimpleVectorStore:
     def save(self):
         """Save vector store state to file."""
         try:
+            os.makedirs(os.path.dirname(os.path.abspath(self.persistence_file)), exist_ok=True)
             with open(self.persistence_file, "w", encoding="utf-8") as f:
                 json.dump(self.documents, f, indent=2)
         except Exception as e:
             print(f"[RAG Store] Error saving store: {e}")
 
     def load(self):
-        """Load vector store state from file."""
+        """Load vector store state from file and initialize IDF weights."""
         if os.path.exists(self.persistence_file):
             try:
                 with open(self.persistence_file, "r", encoding="utf-8") as f:
                     self.documents = json.load(f)
+                self._recompute_idf()
+                for doc in self.documents:
+                    doc["vector"] = self._compute_tfidf_vector(doc.get("content", ""))
             except Exception as e:
                 print(f"[RAG Store] Error loading store: {e}")
                 self.documents = []

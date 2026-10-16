@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  smart-finance-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-finance-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:7b
+      - DB_PATH=/app/database/finance.db
+      - RAG_STORE_PATH=/app/data/rag/rag_store.json
+    volumes:
+      - finance-db-data:/app/database
+      - finance-rag-data:/app/data/rag
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/documents"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  finance-db-data:
+  finance-rag-data:

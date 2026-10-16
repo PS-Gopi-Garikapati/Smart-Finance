@@ -16,5 +16,7 @@ class Settings:
         for origin in os.getenv("CORS_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000").split(",")
         if origin.strip()
     ]
+    RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "30"))
+    RELOAD: bool = os.getenv("RELOAD", "false").lower() in ("true", "1", "yes")
 
 settings = Settings()

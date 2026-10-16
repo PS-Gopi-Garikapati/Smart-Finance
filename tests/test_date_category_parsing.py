@@ -49,6 +49,38 @@ def test_extract_timeframe_year_only():
     assert tf["start_date"] == "2025-01-01"
     assert tf["end_date"] == "2025-12-31"
 
+def test_fallback_preserves_parsed_expense_date_range():
+    action = LLMPolicy().run_fallback_policy(
+        question="How much did I spend from 2026-09-01 to 2026-09-15?",
+        observation_tracker=ObservationTracker(),
+        iteration=1
+    )
+
+    assert action.tool_name == "get_expenses"
+    assert action.arguments["month"] is None
+    assert action.arguments["start_date"] == "2026-09-01"
+    assert action.arguments["end_date"] == "2026-09-15"
+
+def test_fallback_does_not_force_date_range_into_monthly_budget():
+    action = LLMPolicy().run_fallback_policy(
+        question="Did I exceed my food budget from 2026-09-01 to 2026-09-15?",
+        observation_tracker=ObservationTracker(),
+        iteration=1
+    )
+
+    assert action.action == "final_answer"
+    assert "calendar month" in action.answer
+
+def test_fallback_uses_requested_month_for_budget():
+    action = LLMPolicy().run_fallback_policy(
+        question="Did I exceed my food budget in August 2026?",
+        observation_tracker=ObservationTracker(),
+        iteration=1
+    )
+
+    assert action.tool_name == "get_expenses"
+    assert action.arguments["month"] == "2026-08"
+
 def test_ambiguous_budget_question_detected():
     # When user asks if they exceeded budget without naming category
     assert is_ambiguous_budget_question("Did I exceed my budget?") is True

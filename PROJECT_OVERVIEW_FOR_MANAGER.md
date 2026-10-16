@@ -96,7 +96,7 @@ Smart-Finance/
 ├── database/               # SQLite Connection Manager, Schema & Seed Script
 ├── reflection/             # Reflection Evaluator & Grounding Verification Layer
 ├── frontend/               # Web Dashboard UI with Live Tool Tracing & RAG Upload
-└── tests/                  # 56 Pytest Automated Unit & Integration Tests (100% Pass)
+└── tests/                  # 63 Pytest Automated Unit & Integration Tests (100% Pass)
 ```
 
 ---

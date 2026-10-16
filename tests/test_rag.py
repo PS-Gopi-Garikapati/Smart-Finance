@@ -24,6 +24,27 @@ def test_vector_store_add_and_search(tmp_path):
     assert results[0]["doc_id"] == "test_doc_1"
     assert "500" in results[0]["content"]
 
+def test_vector_store_tfidf_idf_weighting(tmp_path):
+    store_file = str(tmp_path / "test_rag_idf.json")
+    store = SimpleVectorStore(persistence_file=store_file)
+    store.documents = []
+    
+    # Doc 1 has common word 'expense' and rare word 'crypto'
+    store.add_document("doc1", "Crypto Policy", "Crypto", "crypto blockchain transactions are expense.")
+    # Doc 2 and 3 also have 'expense', but do not have 'crypto'
+    store.add_document("doc2", "General Expense", "Expense", "travel flight hotel expense reimbursement.")
+    store.add_document("doc3", "Office Expense", "Expense", "office desk chair paper expense supplies.")
+    
+    # Verify IDF weights: rare word 'crypto' must have strictly higher IDF weight than common word 'expense'
+    assert "crypto" in store.idf_weights
+    assert "expense" in store.idf_weights
+    assert store.idf_weights["crypto"] > store.idf_weights["expense"]
+    
+    # In doc 1 vector, crypto should have higher weight than expense even though both occur once
+    doc1_vec = store.documents[0]["vector"]
+    assert doc1_vec["crypto"] > doc1_vec["expense"]
+
+
 def test_mcp_tool_execute_search_documents():
     res = execute_search_documents(query="tax deduction home office internet", top_k=3)
     assert res["success"] is True
