@@ -120,6 +120,12 @@ def extract_timeframe(question: str, reference_date: Optional[Any] = None) -> Di
             except (ValueError, OverflowError):
                 return {"month": None, "start_date": None, "end_date": None, "timeframe_label": f"on {raw_match}", "invalid_date": raw_match, "error": "INVALID_DATE"}
 
+#\d{4} — matches a 4-digit year, such as 2026.
+#(0?[1-9]|1[0-2]) — matches a month from 1 to 12, such as 09.
+#(0?[1-9]|[12]\d|3[01]) — matches a day from 1 to 31, such as 02.
+#\b — helps match the date at word boundaries.
+
+
     # 2c. DD-MM-YYYY or DD/MM/YYYY (e.g., 02-09-2026, 02/09/2026, 2-9-2026, 31-02-2026)
     dmy_match = re.search(r'\b(0?[1-9]|[12]\d|3[01])[-/](0?[1-9]|1[0-2])[-/](\d{4})\b', question)
     if dmy_match:
@@ -133,7 +139,9 @@ def extract_timeframe(question: str, reference_date: Optional[Any] = None) -> Di
         except (ValueError, OverflowError):
             return {"month": None, "start_date": None, "end_date": None, "timeframe_label": f"on {raw_match}", "invalid_date": raw_match, "error": "INVALID_DATE"}
 
-    # 2d. ISO format YYYY-MM-DD (e.g., 2026-09-02, 2026-9-2)
+
+
+    # 2d. ISO format YYYY-MM-DD (e.g., 2026-09-02, 2026-9-2)  #searches for a matching date.
     iso_date_match = re.search(r'\b(\d{4})-(0?[1-9]|1[0-2])-(0?[1-9]|[12]\d|3[01])\b', question)
     if iso_date_match:
         yr_val = int(iso_date_match.group(1))

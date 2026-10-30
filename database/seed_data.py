@@ -67,8 +67,6 @@ EXPENSES_SEED = [
 ]
 
 BUDGETS_SEED = [
-    # October 2026 Budgets
-    ("Food", "2026-10", 3000.0),
     # September 2026 Budgets
     ("Food", "2026-09", 5000.0),
     ("Transport", "2026-09", 3000.0),
