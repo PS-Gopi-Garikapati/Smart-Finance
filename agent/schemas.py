@@ -1,3 +1,4 @@
+#This file acts as the Quality Checker / Blueprint.
 from typing import Dict, Any, Optional, Literal, List
 from pydantic import BaseModel, Field, model_validator
 
@@ -21,10 +22,17 @@ class LLMAction(BaseModel):
 
 class AgentResponse(BaseModel):
     """Final output object returned by the agent loop."""
+    #The original user question
     question: str
+    #The final answer
     answer: str
+    #Names of tools used
     tools_used: List[str]
+    #Results collected from tool calls
     observations: List[Dict[str, Any]]
+    #Number of agent decision cycles
     iterations: int
+    #Status reported for grounding checks
     grounding_status: str
+    #Details from the agent's reflection or evaluation
     reflection: Dict[str, Any]

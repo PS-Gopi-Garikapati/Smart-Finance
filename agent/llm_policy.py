@@ -1,8 +1,13 @@
+#Decides the next action using Ollama or fallback rules.
+#Reads environment variables, such as the Ollama model name.
+#Reads the AI's JSON response.
+#Records decisions and errors.
 import os
 import json
 import logging
 import re
 from typing import List, Dict, Any, Optional
+#Sends HTTP requests to the Ollama service.
 import httpx
 from agent.schemas import LLMAction
 from agent.observations import ObservationTracker
@@ -14,7 +19,13 @@ from agent.timeframe_parser import (
 )
 
 logger = logging.getLogger("LLMPolicy")
-
+#The System Prompt is a set of instructions 
+#given to the LLM that tells it how to 
+#behave in your Smart Finance project.
+#It guides the LLM on which MCP tools to use, 
+#how to make decisions,
+#and how to return accurate answers
+#in the required JSON format.
 SYSTEM_PROMPT = """You are an intelligent Goal-Based Financial AI Assistant.
 Your goal is to answer the user's financial inquiries accurately using the available tools via Model Context Protocol (MCP).
 
@@ -55,12 +66,12 @@ Format 2 (Final Answer):
 """
 
 VALID_TOOLS = [
-    "get_expenses",
-    "get_budget",
+    "get_expenses",#retrieves expense records.
+    "get_budget",#retrieves budget information.
     "calculate_total",
-    "compare_budget",
+    "compare_budget",#compares spending with a budget.
     "get_spending_by_category",
-    "search_documents"
+    "search_documents"#searches financial documents.
 ]
 
 class LLMPolicy:
@@ -75,9 +86,14 @@ class LLMPolicy:
     ):
         self.ollama_host = (ollama_host or os.getenv("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
         self.model_name = model_name or os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+        #The temperature setting controls how variable the model's responses
         self.temperature = float(os.getenv("OLLAMA_TEMPERATURE", str(temperature)))
+        #while the timeout specifies how long the request can wait before timing out.
         self.timeout = float(os.getenv("OLLAMA_TIMEOUT", str(timeout)))
 
+    #This is the main decision-making function.
+    #It prepares the user question, available tools,
+    #and previous observations, then sends them to Ollama.
     async def decide_next_action(
         self,
         question: str,
@@ -92,7 +108,10 @@ class LLMPolicy:
         """
         obs_text = observation_tracker.format_for_llm()
         sys_inst = SYSTEM_PROMPT.format(tools_formatted=tools_formatted)
-
+#user prompt
+#The User Prompt provides the LLM with the user's actual question
+#the observation history from previous tool calls, and the instruction to select the next action.
+#it helps the LLM decide which MCP tool to call next or whether to provide the final answer.
         user_content = (
             f"User Goal/Question: \"{question}\"\n\n"
             f"Observation History (Iteration {iteration} of 5):\n{obs_text}\n\n"
@@ -109,6 +128,8 @@ class LLMPolicy:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 resp = await client.post(
                     f"{self.ollama_host}/api/chat",
+            #This sends the instructions and question to the local Ollama API.
+            #Let the AI decide dynamically which action to take next.
                     json={
                         "model": self.model_name,
                         "messages": messages,

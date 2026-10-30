@@ -1,3 +1,4 @@
+#Shows how much you spent on Food, Shopping, Transport, and other categories.
 from typing import Dict, Any, Optional
 from database.database import execute_query
 from mcp_server.tools.validators import (
@@ -6,7 +7,7 @@ from mcp_server.tools.validators import (
     database_error,
     validate_month_format
 )
-
+#This function retrieves spending totals grouped by category.
 def execute_get_spending_by_category(
     month: Optional[str] = None,
     db_path: Optional[str] = None
@@ -26,7 +27,7 @@ def execute_get_spending_by_category(
         WHERE 1=1
     """
     params = []
-
+#Apply the month filter
     if validated.month:
         query += " AND strftime('%Y-%m', date) = ?"
         params.append(validated.month)

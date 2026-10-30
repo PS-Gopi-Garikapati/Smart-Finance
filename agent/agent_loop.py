@@ -1,15 +1,27 @@
+#Coordinates the agent's full workflow.
 import sys
 import logging
 from typing import Dict, Any, List, Optional
-from mcp_client.client import FinanceMCPClient
+#Connects to the MCP server and executes tools.
+from mcp_client.client import FinanceMCPClient 
+#Finds out which tools are available.
 from mcp_client.tool_discovery import ToolDiscoverer
+#Decides what action the AI should take next.
 from agent.llm_policy import LLMPolicy
+#Stores the results returned by tools.
 from agent.observations import ObservationTracker
+#Defines the structure of the final response.
 from agent.schemas import AgentResponse
+#Checks whether the draft answer is supported by the collected evidence.
 from reflection.evaluator import ReflectionEvaluator
 
 logger = logging.getLogger("SmartFinanceAgent")
 
+#Iteration 1: Retrieve expenses.
+#Iteration 2: Retrieve the budget.
+#Iteration 3: Compare the expenses and budget.
+#Iteration 4: Review the collected information and prepare an answer.
+#Iteration 5: Make another decision if necessary.
 MAX_ITERATIONS = 5
 
 def safe_print(msg: str):
@@ -19,10 +31,15 @@ def safe_print(msg: str):
     except UnicodeEncodeError:
         encoded = msg.encode("ascii", errors="replace").decode("ascii")
         print(encoded)
+#Agent 1 finds the data and writes the answer.
 
 class GoalBasedFinanceAgent:
     """Goal-Based Tool-Calling Agent with dynamic iteration loop, MCP client, and Reflection layer."""
 
+#The MCP client provides access to tools.
+#The tool discoverer finds the available tools.
+#The LLM policy makes decisions.
+#The evaluator checks the answer.
     def __init__(
         self,
         mcp_client: Optional[FinanceMCPClient] = None,
@@ -33,6 +50,8 @@ class GoalBasedFinanceAgent:
         self.tool_discoverer = ToolDiscoverer(self.mcp_client)
         self.llm_policy = llm_policy or LLMPolicy()
         self.evaluator = evaluator or ReflectionEvaluator()
+
+    
 
     async def run(self, question: str) -> AgentResponse:
         """Execute the dynamic agent loop for a user natural-language financial question."""

@@ -1,3 +1,4 @@
+#Retrieves budgets and calculates budget comparisons.
 from typing import Dict, Any, Optional
 from database.database import execute_query
 from mcp_server.tools.validators import (

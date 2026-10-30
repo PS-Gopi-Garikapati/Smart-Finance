@@ -1,3 +1,4 @@
+#organizes that information so the LLM can understand it more easily.
 from typing import List, Dict, Any
 from mcp_client.client import FinanceMCPClient
 

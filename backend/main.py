@@ -1,3 +1,4 @@
+#Receives API requests and connects the application components.
 import os
 import sys
 import logging
@@ -9,17 +10,25 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+#FastAPI — creates the backend API.
+#HTTPException — returns HTTP errors when something goes wrong.
+#CORSMiddleware — controls which frontend origins can access the backend.
+#StaticFiles — serves the frontend website.
+#BaseModel — validates incoming request data using Pydantic.
 
-# Add root directory to sys.path
+
+# Add root directory to sys.path Setting the project root directory
+#Find the main project folder so Python can locate modules such as backend, database, and agent.
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+#Python needs to know where your project files are located before importing them.
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from backend.config import settings
-from database.seed_data import seed_database
-from database.database import DEFAULT_DB_PATH
-from agent.agent_loop import GoalBasedFinanceAgent
-from agent.schemas import AgentResponse
+from backend.config import settings #Stores application configuration, such as host, port, and rate limit.
+from database.seed_data import seed_database #Adds initial sample data to the database.
+from database.database import DEFAULT_DB_PATH #Defines the default location of the database file.
+from agent.agent_loop import GoalBasedFinanceAgent #Coordinates the steps needed to answer financial questions.
+from agent.schemas import AgentResponse #Defines the expected structure of the agent's response. 
 
 # Configure structured logging
 logging.basicConfig(
@@ -43,14 +52,16 @@ async def lifespan(app: FastAPI):
     print("==================================================\n")
     yield
     logger.info("Shutting down backend server.")
-
+# Creating the FastAPI application
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
     lifespan=lifespan
+    #lifespan — runs startup and shutdown tasks.
 )
 
 # Enable CORS for local web interfaces
+#CORS controls which website origins are allowed to send requests to the backend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -173,3 +184,6 @@ if __name__ == "__main__":
     print(f"  http://{click_host}:{settings.PORT}/")
     print("==================================================\n")
     uvicorn.run("backend.main:app", host=settings.HOST, port=settings.PORT, reload=settings.RELOAD)
+#host — controls the network interface.
+#port — specifies the port used by the server.
+#reload — enables automatic reloading during development when configured.

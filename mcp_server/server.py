@@ -2,20 +2,20 @@ import os
 import sys
 from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
-
-# Add root directory to sys.path for internal imports
+#Fast MCP - Creates an MCP server and lets you register tools
+#Add root directory to sys.path for internal imports
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from mcp_server.tools.expenses import execute_get_expenses
+from mcp_server.tools.expenses import execute_get_expenses 
 from mcp_server.tools.budgets import execute_get_budget, execute_compare_budget
 from mcp_server.tools.calculator import execute_calculate_total
 from mcp_server.tools.analytics import execute_get_spending_by_category
 from mcp_server.tools.documents import execute_search_documents
 
 mcp = FastMCP("Smart Finance Server")
-
+#It helps expose ordinary Python functions as tools that an MCP client can discover and invoke.
 @mcp.tool()
 def get_expenses(
     category: Optional[str] = None,
@@ -28,13 +28,14 @@ def get_expenses(
     Filter by category, month (YYYY-MM), or date range (start_date, end_date in YYYY-MM-DD).
     Returns list of expenses, total spent, and expense count.
     """
+   #Retrieves expense records
     return execute_get_expenses(
         category=category,
         month=month,
         start_date=start_date,
         end_date=end_date
     )
-
+#Retrieves a category's budget
 @mcp.tool()
 def get_budget(category: str, month: str) -> dict:
     """
@@ -42,7 +43,7 @@ def get_budget(category: str, month: str) -> dict:
     Returns category, month, and budget amount.
     """
     return execute_get_budget(category=category, month=month)
-
+#Calculates a total from numbers
 @mcp.tool()
 def calculate_total(amounts: List[float]) -> dict:
     """
@@ -50,7 +51,7 @@ def calculate_total(amounts: List[float]) -> dict:
     Returns input amounts, count, and calculated total.
     """
     return execute_calculate_total(amounts=amounts)
-
+#Compares spending with a budget
 @mcp.tool()
 def compare_budget(spent: float, budget: float) -> dict:
     """
@@ -58,7 +59,7 @@ def compare_budget(spent: float, budget: float) -> dict:
     Returns spent, budget, difference, status ('OVER_BUDGET' or 'WITHIN_BUDGET'), and percentage_used.
     """
     return execute_compare_budget(spent=spent, budget=budget)
-
+#Retrieves spending grouped by category
 @mcp.tool()
 def get_spending_by_category(month: Optional[str] = None) -> dict:
     """
@@ -66,7 +67,7 @@ def get_spending_by_category(month: Optional[str] = None) -> dict:
     Returns categories with spent totals, highest spending category, and grand total.
     """
     return execute_get_spending_by_category(month=month)
-
+#Searches uploaded financial documents
 @mcp.tool()
 def search_documents(query: str, top_k: Optional[int] = 3) -> dict:
     """

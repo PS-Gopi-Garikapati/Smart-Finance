@@ -7,3 +7,41 @@ python-dotenv>=1.0.0
 pytest>=8.3.0
 pytest-asyncio>=0.25.0
 ollama>=0.4.0
+
+
+#It is the official protocol that connects your AI agent to 
+#your finance tools (like checking expenses, calculating totals, 
+#and searching receipts). It allows the AI to discover and run tools securely.
+
+#It is the web framework that runs your backend API. 
+#It takes your questions from the web browser, 
+#passes them to the AI agent, and sends the final verified answer back to your screen.
+
+# It is the web server engine that runs FastAPI. 
+#It keeps your server running in the background at localhost:8000 
+#so your web page can talk to your Python code.
+
+#It acts as the data validator and blueprint checker. 
+#It ensures that numbers, dates, categories, and AI responses 
+#are always in the correct format before running any database query or calculation, preventing crashes.
+
+# It is a fast HTTP messenger. 
+#It sends messages from your Python backend to your local Ollama service (http://localhost:11434) 
+#to get decisions from the language model.
+
+#It reads your .env configuration file and loads your 
+#settings (like database file paths, server port numbers, and model names) 
+#into the program automatically.
+
+#It is the automated test runner. 
+#It tests your code automatically to make sure all tools, 
+#databases, and calculations work correctly without errors.
+
+
+#Much of your project runs with asynchronous code 
+#(handling tasks simultaneously like web requests and tool calls). 
+#This library allows pytest to test those asynchronous functions.
+
+
+#It connects your Python application to the local Ollama program running on your machine,
+#allowing you to use open-source language models (like qwen2.5:7b) completely offline and for free.

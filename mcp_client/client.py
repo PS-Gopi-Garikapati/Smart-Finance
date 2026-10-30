@@ -1,15 +1,16 @@
+#This file acts as a bridge between your finance agent and the MCP tools.
 import os
 import sys
 import json
 import logging
-import asyncio
+import asyncio #Your MCP client uses asynchronous functions because connecting to a server and waiting for tool results can take time.
 from typing import Dict, Any, List, Optional
 from mcp import ClientSession
 from mcp.client.stdio import stdio_client, StdioServerParameters
 from pydantic import BaseModel
 
 logger = logging.getLogger("MCPClient")
-
+#It is used to record errors when the client cannot connect to the server or execute a tool.
 class FinanceMCPClient:
     """Dedicated MCP client communicating with mcp_server via stdio protocol with persistent session."""
 

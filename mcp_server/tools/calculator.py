@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from mcp_server.tools.validators import CalculateTotalInput, validation_error
-
+# CalculateTotalInput : Validates the amounts before calculation.
 def execute_calculate_total(amounts: List[float]) -> Dict[str, Any]:
     """Calculate the exact sum of a list of numeric amounts."""
     try:

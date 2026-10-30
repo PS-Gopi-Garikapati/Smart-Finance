@@ -2,6 +2,12 @@ from database.database import get_db_connection, DEFAULT_DB_PATH
 from database.init_db import init_database
 
 EXPENSES_SEED = [
+
+    #October 2026 - Food (Total = 3000)
+    ("2026-10-02", "Food", 1500.0, "Supermarket Groceries"),
+    ("2026-10-12", "Food", 500.0, "Weekend Restaurant Dinner"),
+    ("2026-10-20", "Food", 1000.0, "Organic Food Store"),
+
     # September 2026 - Food (Total = 6000)
     ("2026-09-02", "Food", 2500.0, "Supermarket Groceries"),
     ("2026-09-12", "Food", 1500.0, "Weekend Restaurant Dinner"),
@@ -27,6 +33,7 @@ EXPENSES_SEED = [
     ("2026-08-04", "Food", 2000.0, "Weekly Grocery Run"),
     ("2026-08-14", "Food", 1800.0, "Family Dining Out"),
     ("2026-08-25", "Food", 1000.0, "Cafes & Bakery"),
+
 
     # August 2026 - Transport (Total = 1500)
     ("2026-08-08", "Transport", 1500.0, "Monthly Commute Expenses"),
@@ -60,6 +67,8 @@ EXPENSES_SEED = [
 ]
 
 BUDGETS_SEED = [
+    # October 2026 Budgets
+    ("Food", "2026-10", 3000.0),
     # September 2026 Budgets
     ("Food", "2026-09", 5000.0),
     ("Transport", "2026-09", 3000.0),
