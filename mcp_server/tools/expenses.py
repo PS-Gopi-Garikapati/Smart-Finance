@@ -39,17 +39,22 @@ def execute_get_expenses(
         query += " AND LOWER(category) = LOWER(?)"
         params.append(validated.category)
 
-    if validated.month:
-        query += " AND strftime('%Y-%m', date) = ?"
-        params.append(validated.month)
-
-    if validated.start_date:
-        query += " AND date >= ?"
+    # For a specific date, retrieve only records matching that exact date
+    if validated.start_date and validated.end_date and validated.start_date == validated.end_date:
+        query += " AND date = ?"
         params.append(validated.start_date)
+    else:
+        if validated.month:
+            query += " AND strftime('%Y-%m', date) = ?"
+            params.append(validated.month)
 
-    if validated.end_date:
-        query += " AND date <= ?"
-        params.append(validated.end_date)
+        if validated.start_date:
+            query += " AND date >= ?"
+            params.append(validated.start_date)
+
+        if validated.end_date:
+            query += " AND date <= ?"
+            params.append(validated.end_date)
 
     query += " ORDER BY date ASC"
 #Step 8: Execute the query and calculate the total
@@ -62,6 +67,8 @@ def execute_get_expenses(
             "success": True, #indicates the query succeeded.
             "category": validated.category, #the requested category filter.
             "month": validated.month, #the requested month filter.
+            "start_date": validated.start_date,
+            "end_date": validated.end_date,
             "expenses": rows, #the matching expense records.
             "count": len(rows), #number of matching records.
             "total": total #sum of the matching expense amounts.

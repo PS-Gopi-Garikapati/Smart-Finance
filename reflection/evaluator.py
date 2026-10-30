@@ -312,6 +312,9 @@ class ReflectionEvaluator:
         """Extract monetary or numeric values from text, ignoring dates, years, and iteration limits."""
         # 1. Mask dates and system annotations
         masked = re.sub(r'\b\d{4}-\d{2}-\d{2}\b', ' ', text)
+        masked = re.sub(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{4}\b', ' ', masked)
+        masked = re.sub(r'\b\d{1,2}(?:st|nd|rd|th)?[- \t]+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*[- \t,]+\d{4}\b', ' ', masked, flags=re.I)
+        masked = re.sub(r'\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*[- \t]+(0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?[- \t,]+\d{4}\b', ' ', masked, flags=re.I)
         masked = re.sub(r'\b\d{4}-(?:0[1-9]|1[0-2])\b', ' ', masked)
         masked = re.sub(r'\b(?:in|for|year|during|since|until)\s+20\d{2}\b', ' ', masked, flags=re.I)
         masked = re.sub(r'\b20\d{2}\b', ' ', masked) # isolated 4-digit years like 2024, 2025, 2026
@@ -395,9 +398,19 @@ class ReflectionEvaluator:
             total = exp.get("total", 0.0)
             count = exp.get("count", 0)
             cat = exp.get("category") or next(iter(evidence["categories"]), None)
+            start_date = exp.get("start_date")
+            end_date = exp.get("end_date")
             month = exp.get("month") or next(iter(evidence["months"]), None)
 
-            time_str = f"in {month}" if month else "for the requested period"
+            if start_date and end_date and start_date == end_date:
+                time_str = f"on {start_date}"
+            elif start_date and end_date:
+                time_str = f"from {start_date} to {end_date}"
+            elif month:
+                time_str = f"in {month}"
+            else:
+                time_str = "for the requested period"
+
             count_str = f" ({count} transactions)" if count > 0 else ""
             if count == 0 and total == 0.0 and "expenses" in exp and len(exp.get("expenses", [])) == 0:
                 cat_str = f"for {cat} " if cat else ""

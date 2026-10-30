@@ -26,6 +26,7 @@ def get_expenses(
     """
     Retrieve expense records from SQLite database.
     Filter by category, month (YYYY-MM), or date range (start_date, end_date in YYYY-MM-DD).
+    To filter for a specific single date, pass that date as both start_date and end_date (with month as None).
     Returns list of expenses, total spent, and expense count.
     """
    #Retrieves expense records

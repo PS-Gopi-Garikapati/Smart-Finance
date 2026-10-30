@@ -18,6 +18,14 @@ from agent.timeframe_parser import (
     SUPPORTED_CATEGORIES
 )
 
+__all__ = [
+    "LLMPolicy",
+    "extract_category",
+    "extract_timeframe",
+    "is_ambiguous_budget_question",
+    "SUPPORTED_CATEGORIES"
+]
+
 logger = logging.getLogger("LLMPolicy")
 #The System Prompt is a set of instructions 
 #given to the LLM that tells it how to 
@@ -259,6 +267,15 @@ class LLMPolicy:
         end_date = tf.get("end_date")
         tf_label = tf.get("timeframe_label", "the requested timeframe")
 
+        # Handle invalid date inputs safely
+        if tf.get("error") == "INVALID_DATE" or tf.get("invalid_date"):
+            inv = tf.get("invalid_date", "provided")
+            return LLMAction(
+                action="final_answer",
+                answer=f"The date '{inv}' is not a valid calendar date. Please check the date and try again.",
+                thought="Clarification requested: user provided an invalid calendar date."
+            )
+
         budget_intent = any(k in q_lower for k in ("budget", "exceed", "over"))
         analytics_intent = any(k in q_lower for k in ("highest", "most", "by category"))
         if start_date or end_date:
@@ -267,7 +284,7 @@ class LLMPolicy:
                     action="final_answer",
                     answer=(
                         "Budget comparisons are available by calendar month. "
-                        "Please specify a month instead of a date range or year."
+                        "Please specify a month instead of a date range or specific date."
                     ),
                     thought="Clarification requested because the budget tool requires a calendar month."
                 )
@@ -276,7 +293,7 @@ class LLMPolicy:
                     action="final_answer",
                     answer=(
                         "Category breakdowns are available by calendar month. "
-                        "Please specify a month instead of a date range or year."
+                        "Please specify a month instead of a date range or specific date."
                     ),
                     thought="Clarification requested because the analytics tool requires a calendar month."
                 )
@@ -467,10 +484,24 @@ class LLMPolicy:
 
             expenses = res.get("expenses", [])
             total = res.get("total", 0.0)
+            is_single_date = bool(start_date and end_date and start_date == end_date)
+            date_display = tf.get("raw_date") or start_date
 
             if not expenses or res.get("count", 0) == 0:
-                cat_str = f"for {category} " if category else ""
-                ans = f"No expense records were found {cat_str}{tf_label}."
+                if is_single_date:
+                    if category:
+                        ans = f"No {category} expenses found for {date_display}."
+                    else:
+                        ans = f"No expense records found for {date_display}."
+                elif category:
+                    ans = f"No expense records were found for {category} {tf_label}."
+                else:
+                    ans = f"No expense records were found {tf_label}."
+            elif is_single_date:
+                if category:
+                    ans = f"You spent a total of ₹{total:,.2f} on {category} on {date_display}."
+                else:
+                    ans = f"Your total spending on {date_display} across all categories was ₹{total:,.2f}."
             elif category:
                 ans = f"You spent a total of ₹{total:,.2f} on {category} {tf_label}."
             else:
